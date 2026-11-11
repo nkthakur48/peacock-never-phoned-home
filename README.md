@@ -50,7 +50,3 @@ It draws the bird, the feather strip and the next quest on every exercise file, 
 ## Checks
 
 `./check.sh` runs every exercise file against a fake model in headless Chrome and checks the feathers. It does not load the real model.
-
-## Art
-
-Prompts, sizes and the shared style and character blocks for every image are in [`assets/story/README.md`](assets/story/README.md).

@@ -20,6 +20,7 @@
 !/assets/speaker-aishwarya.png
 !/assets/speaker.png
 !/assets/story/
+/assets/story/*.md
 !/assets/guide/
 
 !/vendor/
