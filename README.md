@@ -7,8 +7,7 @@
 <p align="center"><em>UbuCon workshop: build a zero-cost AI agent in your browser. 90 minutes including Q&amp;A.</em></p>
 
 <p align="center">
-  <strong>Nishant Kumar Thakur</strong> &nbsp;·&nbsp; <strong>Aishwarya Mathuria</strong><br>
-  <sub>Senior Computer Scientist &nbsp;·&nbsp; Computer Scientist 2</sub>
+  <strong>Nishant Kumar Thakur</strong> &nbsp;·&nbsp; <strong>Aishwarya Mathuria</strong>
 </p>
 
 ## Getting started
