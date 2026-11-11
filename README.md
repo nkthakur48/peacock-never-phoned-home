@@ -6,7 +6,7 @@
 Serve the repo folder the same way you did for the prework (the browser caches the model per address), then open:
 
 - `ubucon/index.html`: the landing page. Links to the slides, the setup steps and every exercise file. Send attendees here.
-- `ubucon/slides.html`: the deck. `S` opens speaker notes, which carry timings and a clock mark per chapter.
+- `ubucon/slides.html`: the deck. Speaker notes, with timings and a clock mark per chapter, are in `speaker-notes.md`, which is not committed.
 - `ubucon/exercise/0-egg.html`: where attendees start.
 
 ## Exercise files

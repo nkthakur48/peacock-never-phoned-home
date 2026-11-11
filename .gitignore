@@ -25,7 +25,9 @@
 !/vendor/reveal.min.css
 !/vendor/reveal.min.js
 !/vendor/white.min.css
-!/vendor/notes.js
 
 # never, anywhere
 .DS_Store
+
+# speaker notes stay on the presenters' machines
+speaker-notes.md
