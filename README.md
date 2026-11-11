@@ -1,13 +1,26 @@
-# The peacock that never phoned home
+<p align="center">
+  <img src="assets/story/landing-hero.png" alt="Mor the peacock climbing five steps, from an egg to a grown peacock with a full tail fan" width="520">
+</p>
 
-> UbuCon workshop: build a zero-cost AI agent in your browser. 90 minutes including Q&A.
->
-> Speakers: Nishant Kumar Thakur and Aishwarya Mathuria.
+<h1 align="center">The peacock that never phoned home</h1>
+
+<p align="center"><em>UbuCon workshop: build a zero-cost AI agent in your browser. 90 minutes including Q&amp;A.</em></p>
+
+<p align="center">
+  <strong>Nishant Kumar Thakur</strong> &nbsp;·&nbsp; <strong>Aishwarya Mathuria</strong><br>
+  <sub>Senior Computer Scientist &nbsp;·&nbsp; Computer Scientist 2</sub>
+</p>
+
+## Getting started
+
+New here? Start with the [pre-workshop setup guide](pre-workshop-guide.md) to install VS Code and Live Server, and to pre-cache the model (a one-time 1.5 GB download, so do it on good wifi). The cache step uses [`exercise/precache.html`](exercise/precache.html).
+
+## Open the workshop
 
 Serve this folder the same way you did for the prework (the browser caches the model per address), then open:
 
 - [`index.html`](index.html): the landing page. Links to the slides, the setup steps and every exercise file. Send attendees here.
-- [`slides.html`](slides.html): the deck. Speaker notes, with timings and a clock mark per chapter, are in `speaker-notes.md`, which is not committed.
+- [`slides.html`](slides.html): the deck.
 - [`exercise/0-egg.html`](exercise/0-egg.html): where attendees start.
 
 ## Exercise files

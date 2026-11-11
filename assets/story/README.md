@@ -1,4 +1,4 @@
-# Story art for `ubucon/slides.html`
+# Story art for `slides.html`
 
 Save each image here as a PNG with the exact filename. The deck and the exercise pages pick it up on reload (the exercise pages show `brain`, `voice`, `personality` and `memory` as the bird grows, and fall back to an emoji); a missing file leaves its slot empty (or shows a number badge on the "seven abilities" slide).
 
