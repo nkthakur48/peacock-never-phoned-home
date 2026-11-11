@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>1 · Brain</title>
+</head>
+<body>
+  <script src="nest.js"></script>  <!-- your peacock, its feathers and your next quest -->
+
+  <p id="status">No brain yet.</p>
+  <input id="input" placeholder="Ask something...">
+  <button id="send">Send</button>
+  <p id="output"></p>
+
+  <script type="module">
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+
+    // ---- Chapter 1 · a brain ----
+    import { CreateMLCEngine } from
+      "https://esm.run/@mlc-ai/web-llm";
+
+    const engine = await CreateMLCEngine(
+      "gemma-2-2b-it-q4f16_1-MLC", {
+        initProgressCallback: ({ text }) => {
+          statusEl.textContent = text;
+        }
+      }
+    );
+    statusEl.textContent = "Model ready!";
+
+    async function ask(userText) {
+      // ---- Chapter 2 · a voice ----
+      // Send userText to the model and put the reply in outputEl.
+
+    }
+
+    // Hands your code to the page: it calls ask() when you press Send. Nothing to change here.
+    nest.start(ask, typeof engine === "undefined" ? null : engine);
+  </script>
+</body>
+</html>

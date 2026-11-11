@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>0 · Egg</title>
+</head>
+<body>
+  <script src="nest.js"></script>  <!-- your peacock, its feathers and your next quest -->
+
+  <p id="status">No brain yet.</p>
+  <input id="input" placeholder="Ask something...">
+  <button id="send">Send</button>
+  <p id="output"></p>
+
+  <script type="module">
+    const statusEl = document.getElementById("status");
+    const outputEl = document.getElementById("output");
+
+    // ---- Chapter 1 · a brain ----
+    // Import WebLLM and load the model here.
+
+
+    // ---- Chapter 3 · a character ---- (later)
+
+    // ---- Chapter 4 · a memory ---- (later)
+
+    async function ask(userText) {
+      // ---- Chapter 2 · a voice ----
+      // Send userText to the model and put the reply in outputEl.
+
+    }
+
+    // Hands your code to the page: it calls ask() when you press Send. Nothing to change here.
+    nest.start(ask, typeof engine === "undefined" ? null : engine);
+  </script>
+</body>
+</html>

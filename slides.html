@@ -1,0 +1,618 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The peacock that never phoned home: build a zero-cost AI agent in your browser</title>
+<link rel="stylesheet" href="vendor/reveal.min.css">
+<link rel="stylesheet" href="vendor/white.min.css">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #fbfaf6; --ink: #1c1e26; --muted: #5c6070;
+    --real: #0f766e; --leak: #b42318; --warn: #b45309;
+    --line: #d9d6cc; --code-bg: #f3f1ea;
+  }
+  .reveal-viewport { background: var(--bg); }
+  .reveal { font-family: 'Inter', -apple-system, sans-serif; color: var(--ink); }
+  .reveal h1, .reveal h2, .reveal h3 { font-family: 'Inter', sans-serif; color: var(--ink); text-transform: none; letter-spacing: -0.02em; font-weight: 800; }
+  .reveal h1 { font-size: 2.3em; line-height: 1.1; }
+  .reveal h2 { font-size: 1.5em; margin-bottom: 0.5em; }
+  .reveal h3 { font-size: 1.05em; font-weight: 600; color: var(--muted); }
+  .reveal p, .reveal li { font-size: 0.78em; line-height: 1.5; }
+  .reveal section { text-align: left; }
+  .reveal .center { text-align: center; }
+  .reveal code { font-family: 'JetBrains Mono', monospace; font-variant-ligatures: none; }
+  .reveal p code, .reveal li code, .reveal span code { background: var(--code-bg); padding: 0.1em 0.35em; border-radius: 4px; font-size: 0.9em; }
+  .real { color: var(--real); } .leak { color: var(--leak); } .warn { color: var(--warn); } .muted { color: var(--muted); }
+  .reveal .small { font-size: 0.6em; color: var(--muted); }
+  .reveal .q { font-size: 0.6em; font-weight: 600; color: var(--muted); letter-spacing: 0.08em; text-transform: uppercase; margin-bottom: 0.2em; }
+  .reveal .big { font-size: 1.5em; font-weight: 800; line-height: 1.15; letter-spacing: -0.02em; }
+  .reveal .slide-number { background: transparent; color: var(--muted); font-size: 13px; }
+  .reveal .progress { color: var(--real); } .reveal .controls { color: var(--real); }
+  .reveal.has-dark-background .slide-number { color: #b9e4de; }
+  .reveal .chapter h1 { color: #fff; font-size: 2.6em; } .reveal .chapter .q { color: #b9e4de; font-size: 0.8em; margin-bottom: 0.6em; }
+
+  /* story art: optional images in assets/story/ (prompts: assets/story/README.md). A missing file removes its own slot. */
+  .reveal img.art { border: 0; box-shadow: none; background: none; margin: 0; mix-blend-mode: multiply; filter: brightness(1.05); }
+  .reveal img.hero { display: block; margin: 0.2em auto 0; max-height: 360px; max-width: 100%; }
+  .reveal img.key { position: absolute; right: 0; top: 0; height: 300px; }
+  .reveal img.side { flex: none; width: 290px; align-self: center; }
+  :has(> img.art) { background: var(--bg); }  /* multiply needs a backdrop inside its own stacking context, or white shows */
+
+  /* code: dark block, one highlighted line (.hl) instead of syntax colours */
+  .reveal pre.term { background: #1c1e26; color: #e8e6df; font-family: 'JetBrains Mono', monospace; font-variant-ligatures: none; font-size: 0.5em; border-radius: 8px; padding: 0.8em 1.1em; line-height: 1.5; white-space: pre-wrap; width: auto; margin: 0; box-shadow: none; flex: 1; min-width: 0; }
+  .term .g { color: #9fdc9c; } .term .k { color: #ff8a80; font-weight: 600; } .term .y { color: #ffd479; } .term .c { color: #8d92a3; }
+  .hl { background: #24524c; border-radius: 4px; padding: 0 0.3em; margin: 0 -0.3em; }
+  .split { display: flex; gap: 1em; align-items: flex-start; }
+
+  .face { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid var(--line); }
+  .reveal img.qr { width: 190px; height: 190px; margin: 0; border: 0; box-shadow: none; }
+  .li { display: grid; grid-template-columns: 1fr 1fr; row-gap: 0.5em; } .li > div { padding: 0 0.5em; } .li > div + div { border-left: 1px solid var(--line); } .reveal .li img.qr { width: 165px; height: 165px; }
+  .li .who { display: flex; align-items: center; justify-content: center; gap: 0.5em; margin: 0.3em 0 0; } .reveal .li .face { width: 64px; height: 64px; border-width: 2px; margin: 0; }
+  .reveal img.shot { max-height: 350px; margin: 0; border: 1px solid var(--line); border-radius: 10px; box-shadow: none; }
+
+  .i { width: 1em; height: 1em; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; stroke-linejoin: round; vertical-align: -0.14em; }
+  .ask { display: inline-block; font-size: 0.5em; font-weight: 700; background: #fff3d6; color: var(--warn); border: 2px solid #f0d9a3; border-radius: 999px; padding: 0.15em 0.9em; margin-bottom: 0.5em; }
+  .pill { display: inline-block; font-size: 0.55em; font-weight: 600; border: 2px solid var(--line); background: #fff; border-radius: 999px; padding: 0.2em 0.9em; margin: 0.15em; }
+
+  .chain { display: flex; align-items: center; justify-content: space-between; margin-top: 1em; }
+  .node { text-align: center; width: 220px; }
+  .node .ic { font-size: 2.6em; line-height: 1.1; color: var(--real); }
+  .node b { display: block; font-size: 0.7em; }
+  .node .role { display: block; font-size: 0.5em; color: var(--muted); }
+  .lk { font-size: 1.6em; color: var(--muted); }
+
+  .cards { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1em; margin-top: 0.8em; }
+  .card { border: 2px solid var(--line); border-radius: 12px; background: #fff; padding: 0.5em 0.7em; text-align: center; }
+  .card .ic { font-size: 2.2em; } .ic.real { color: var(--real); } .ic.leak { color: var(--leak); } .ic.warn { color: var(--warn); }
+  .card b { display: block; font-size: 0.7em; }
+  .card span.s { display: block; font-size: 0.5em; color: var(--muted); margin-top: 0.2em; }
+
+  /* the seven feathers */
+  .seven { display: grid; grid-template-columns: repeat(7, 1fr); gap: 0.4em; margin-top: 1em; text-align: center; }
+  .seven img.art { height: 120px; }
+  .seven .n, .cmd .n { display: inline-block; width: 1.8em; height: 1.8em; border-radius: 50%; background: var(--ink); color: #fff; text-align: center; line-height: 1.8em; font-weight: 800; }
+  .seven .n { font-size: 0.9em; margin: 0.8em 0; background: var(--real); } .seven img.art + .n { display: none; }
+  .seven b { display: block; font-size: 0.62em; } .seven span.s { display: block; font-size: 0.45em; color: var(--muted); }
+
+  /* progress strip: one feather per thing learned */
+  #grow { position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 30; white-space: nowrap; font: 600 12px 'JetBrains Mono', monospace; display: none; }
+  #grow span { display: inline-block; padding: 2px 12px; margin: 0 2px; border-radius: 999px 999px 999px 0; border: 1px solid var(--line); color: #b8b4a6; background: var(--bg); }
+  #grow span.on { color: #fff; background: var(--real); border-color: var(--real); }
+  #grow span.new { animation: pill .8s; }
+  @keyframes pill { 40% { transform: scale(1.5); } 100% { transform: scale(1); } }
+  @media (prefers-reduced-motion: reduce) { #grow span.new { animation: none; } }
+  #grow span.on::after { content: ''; display: inline-block; width: 7px; height: 7px; margin-left: 6px; border-radius: 50%; background: #f5a623; }  /* the eye of the feather */
+
+  .ba { display: grid; grid-template-columns: 1fr 1fr; gap: 1.2em; margin-top: 0.4em; }
+  .ba .side { border-radius: 14px; padding: 0.6em 1em; text-align: center; }
+  .ba .before { background: #fdeeec; border: 2px solid #f0c8c3; } .ba .after { background: #eaf7f4; border: 2px solid #b9e0d9; }
+  .ba h3 { margin: 0 0 0.4em; font-size: 0.9em; } .ba .before h3 { color: var(--leak); } .ba .after h3 { color: var(--real); }
+
+  .cmd { display: grid; grid-template-columns: 56px 1.4fr 1fr; align-items: center; gap: 0.6em; padding: 0.35em 0; border-bottom: 1px solid var(--line); font-size: 0.62em; }
+  .cmd code { background: var(--code-bg); padding: 0.15em 0.5em; border-radius: 5px; justify-self: start; }
+  .cmd .w { color: var(--real); font-weight: 600; }
+  .row { display: grid; grid-template-columns: 1fr 40px 1fr; align-items: center; gap: 0.5em; padding: 0.45em 0; border-bottom: 1px solid var(--line); font-size: 0.62em; }
+  .row .b { color: var(--leak); } .row .a { color: var(--real); font-weight: 700; } .row .ar { text-align: center; color: var(--muted); }
+</style>
+</head>
+<body>
+<svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol><symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol><symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 2.5h12v19l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z"/><path d="M9 7h6M9 10.5h6M9 14h3.5"/></symbol><symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 11V6a1.5 1.5 0 0 1 3 0v4M11 10V4.5a1.5 1.5 0 0 1 3 0V10M14 10V6a1.5 1.5 0 0 1 3 0v7c0 4-2.5 7-6 7-2.5 0-4-1-5-3l-2-4a1.5 1.5 0 0 1 2.500-1.5L8 14"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="2"/><path d="M12 8V4M9 13h.01M15 13h.01M9.5 16h5"/></symbol><symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></symbol><symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 8-12h-6z"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></symbol><symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8A5.5 5.5 0 0 1 17 8.500 4.500 4.500 0 0 1 17.500 18z"/></symbol></svg>
+
+<div id="grow"><span>brain</span><span>voice</span><span>character</span><span>memory</span><span>face</span><span>hands</span><span>home</span></div>
+<div class="reveal">
+<div class="slides">
+
+<!-- TITLE -->
+<section>
+  <img class="art key" style="height:330px" src="assets/story/title.png" alt="Mor the peacock chick sitting on an unplugged telephone" onerror="this.onerror=null;this.src='assets/mascot-2026.svg'">
+  <h1>The peacock that<br>never phoned home</h1>
+  <h3>Build a zero-cost AI agent<br>in your browser</h3>
+  <div style="display:flex;align-items:center;gap:2.5em;margin-top:1.3em">
+    <div style="display:flex;align-items:center;gap:1em"><img class="face" src="assets/speaker.png" alt="Nishant Kumar Thakur"><p class="small" style="margin:0;line-height:1.3">Nishant Kumar Thakur<br><span style="font-size:.7em">Senior Computer Scientist | Adobe</span></p></div>
+    <div style="display:flex;align-items:center;gap:1em"><img class="face" src="assets/speaker-aishwarya.png" alt="Aishwarya Mathuria"><p class="small" style="margin:0;line-height:1.3">Aishwarya Mathuria<br><span style="font-size:.7em">Computer Scientist 2 | Adobe</span></p></div>
+  </div>
+  <aside class="notes">[~1m] Keep the intro to one breath: both names, and "today you don't watch a talk, you raise an AI agent from an egg". Point at the picture: "this is Mor, and it never phoned home. Yours starts as an egg and earns its feathers one at a time." The real UbuCon mascot is on the last slide. Don't explain the title yet. Have exercise/5-face.html already loaded in a second tab for the next slide.</aside>
+</section>
+
+<!-- COLD OPEN -->
+<section>
+  <p class="q">it starts like this</p>
+  <h2>We turned the Wi-Fi off. It kept answering.</h2>
+  <img class="art hero" src="assets/story/cold-open.png" alt="A young peacock at a laptop, holding an unplugged network cable" onerror="this.remove()">
+  <p class="center fragment"><b class="real">No server. No API key. Nothing left this laptop.</b></p>
+  <aside class="notes">[~2m] LIVE. Switch to the 5-face.html tab that is ALREADY loaded (the page imports WebLLM from a CDN, so it must be loaded before you go offline). Turn Wi-Fi off where the room can see it. Ask the room for a question and type it. Let it answer. Pause. Then click for the line. Don't explain how: "in 90 minutes each of you will have one of these". Turn Wi-Fi back on afterwards, attendees need it.</aside>
+</section>
+
+<!-- HOOK: THE METER -->
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> hands up when you spot yourself</span>
+  <h2>Every AI app has a meter running</h2>
+  <div class="split">
+    <div class="cards" style="flex:1">
+      <div class="card fragment"><div class="ic leak"><svg class="i"><use href="#i-key"/></svg></div><b>The key</b><span class="s">pasted an API key into your code</span></div>
+      <div class="card fragment"><div class="ic warn"><svg class="i"><use href="#i-receipt"/></svg></div><b>The bill</b><span class="s">hit a rate limit or a credit card form</span></div>
+      <div class="card fragment"><div class="ic leak"><svg class="i"><use href="#i-cloud"/></svg></div><b>The cloud</b><span class="s">wondered where your prompt went</span></div>
+    </div>
+    <img class="art side" style="width:230px" src="assets/story/meter.png" alt="" onerror="this.remove()">
+  </div>
+  <p class="big fragment" style="margin-top:.8em">Today: <span class="real">none of the three.</span> $0.</p>
+  <aside class="notes">[~2m] The villain. One card per click, ask for hands each time. For this room the third one lands hardest: your prompts are your data, and with a hosted model they leave your machine. Tell a real story here if you have one (a leaked key, a surprise bill). Then click: none of the three.</aside>
+</section>
+
+<!-- THE MAP -->
+<section data-lvl="0">
+  <h2>Today you raise one</h2>
+  <p class="small" style="margin-top:-0.8em">Ours is called Mor. Yours gets its own name. It hatches with no tail, and has seven feathers to grow:</p>
+  <div class="seven">
+    <div class="fragment"><img class="art" src="assets/story/brain.png" alt="" onerror="this.remove()"><span class="n">1</span><b>A brain</b><span class="s">load the model</span></div>
+    <div class="fragment"><img class="art" src="assets/story/voice.png" alt="" onerror="this.remove()"><span class="n">2</span><b>A voice</b><span class="s">chat + streaming</span></div>
+    <div class="fragment"><img class="art" src="assets/story/personality.png" alt="" onerror="this.remove()"><span class="n">3</span><b>A character</b><span class="s">system prompt</span></div>
+    <div class="fragment"><img class="art" src="assets/story/memory.png" alt="" onerror="this.remove()"><span class="n">4</span><b>A memory</b><span class="s">chat history</span></div>
+    <div class="fragment"><img class="art" src="assets/story/face.png" alt="" onerror="this.remove()"><span class="n">5</span><b>A face</b><span class="s">chat UI</span></div>
+    <div class="fragment"><img class="art" src="assets/story/hands.png" alt="" onerror="this.remove()"><span class="n">6</span><b>Hands</b><span class="s">tools</span></div>
+    <div class="fragment"><img class="art" src="assets/story/home.png" alt="" onerror="this.remove()"><span class="n">7</span><b>A home</b><span class="s">GitHub Pages</span></div>
+  </div>
+  <p class="small fragment" style="margin-top:1.4em">Watch the feathers at the bottom. The same strip is on your own page, and it lights up when your code earns it.</p>
+  <aside class="notes">[~1m] The whole workshop on one slide. One click per feather, say one sentence each, no detail. Point at the strip at the bottom: one feather lights up for each thing theirs learns. "Mor" is Hindi for peacock. Ask people to pick a name for theirs now.</aside>
+</section>
+
+<!-- THE STACK -->
+<section>
+  <h2>Where does it live? In one browser tab.</h2>
+  <div class="chain">
+    <div class="node"><div class="ic"><svg class="i"><use href="#i-file"/></svg></div><b>Your HTML</b><span class="role">one file · no npm · no build</span></div>
+    <span class="lk fragment" data-fragment-index="1">→</span>
+    <div class="node fragment" data-fragment-index="1"><div class="ic"><svg class="i"><use href="#i-bolt"/></svg></div><b>WebLLM</b><span class="role">one CDN import · OpenAI-shaped API</span></div>
+    <span class="lk fragment" data-fragment-index="2">→</span>
+    <div class="node fragment" data-fragment-index="2"><div class="ic"><svg class="i"><use href="#i-chip"/></svg></div><b>WebGPU</b><span class="role">your own GPU, from a web page</span></div>
+    <span class="lk fragment" data-fragment-index="3">→</span>
+    <div class="node fragment" data-fragment-index="3"><div class="ic"><svg class="i"><use href="#i-bot"/></svg></div><b>Gemma 2 2B</b><span class="role">open weights · 4-bit · about 1.5 GB</span></div>
+  </div>
+  <p class="fragment" style="margin-top:1.6em">That's all the theory. <b class="real">Let's hatch it.</b></p>
+  <aside class="notes">[~2m] Three facts, one per click. WebLLM: same API shape as OpenAI, so what you learn today transfers. WebGPU: the successor to WebGL, lets a page use the GPU for compute. Gemma 2 2B: Google's open-weights model, quantized to 4 bits so a multi-GB model fits in about 1.5 GB and is cached by the browser after the first download.</aside>
+</section>
+
+<!-- QUICK CHECK -->
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> thumbs up when all four are green</span>
+  <h2>Before we hatch anything</h2>
+  <div>
+    <div class="cmd fragment"><span class="n">1</span><code>chrome://gpu</code><span class="w">WebGPU: Hardware accelerated</span></div>
+    <div class="cmd fragment"><span class="n">2</span><code>webgpureport.org</code><span class="w">isFallbackAdapter: false</span></div>
+    <div class="cmd fragment"><span class="n">3</span><code>Open with Live Server</code><span class="w">same way as your prework</span></div>
+    <div class="cmd fragment"><span class="n">4</span><code>ubucon/exercise/0-egg.html</code><span class="w">you see an egg, and no red text</span></div>
+  </div>
+  <p class="small fragment" style="margin-top:1em">Red text under the egg? Pair up with a neighbour for now.</p>
+  <aside class="notes">[~4m] Walk the room during this. Check 3 matters more than it looks: the browser caches the model per address, so anyone who serves the folder a different way from their prework (another port, another tool) downloads 1.5 GB again. Check 2 matters on Linux: isFallbackAdapter true means the CPU is pretending to be a GPU and the model will crawl. The egg page repeats checks 1 and 2 by itself and prints what is wrong in red. Anyone who skipped the prework opens exercise/precache.html now and catches up by chapter 2. TEST BEFORE THE DAY on a stock Ubuntu install: whether Chrome enables WebGPU without flags depends on the GPU and Chrome version, and the q4f16 model needs the shader-f16 GPU feature. If a machine lacks it, have a fallback model id ready and verify it beforehand.</aside>
+</section>
+
+<!-- CH 1: BRAIN -->
+<section class="chapter" data-background-color="#0f766e">
+  <p class="q">chapter 1</p>
+  <h1>It gets a brain</h1>
+  <aside class="notes">[clock 0:12] Chapter card. Say the line, pause, click.</aside>
+</section>
+
+<section data-lvl="1">
+  <p class="q" style="text-transform:none;letter-spacing:0">exercise/0-egg.html · the page is there, the brain isn't</p>
+  <h2>One import. One function call.</h2>
+  <div class="split">
+<pre class="term"><span class="hl">import { CreateMLCEngine } from</span>
+  <span class="hl">"https://esm.run/@mlc-ai/web-llm";</span>
+
+<span class="hl">const engine = await CreateMLCEngine(</span>
+  <span class="g">"gemma-2-2b-it-q4f16_1-MLC"</span>, {
+    initProgressCallback: ({ text }) =&gt; {
+      statusEl.textContent = text;
+    }
+  }
+);
+statusEl.textContent = "Model ready!";</pre>
+    <img class="art side" src="assets/story/brain.png" alt="An egg cracking open, two eyes peeking out" onerror="this.remove()">
+  </div>
+  <p class="small fragment" style="margin-top:1em">Save. The egg hatches when the model is ready: <b class="real">your first feather.</b></p>
+  <aside class="notes">[~5m] 0-egg.html already has the page: a status line, an input, a Send button and an output area, plus a panel at the top with the bird, the feather strip and the next quest. They type only these lines, under the "Chapter 1" comment. Wait for hatched eggs around the room before moving on. The page works out feathers from what their code sends to the model, so nobody has to tick anything off. The pills under the bird are example prompts: clicking one fills the chat box, so beginners never have to think of something to ask. It has a brain now, but pressing Send does nothing: ask() is empty. That is the next chapter.</aside>
+</section>
+
+<!-- CH 2: VOICE -->
+<section class="chapter" data-background-color="#0f766e">
+  <p class="q">chapter 2</p>
+  <h1>Its first words</h1>
+  <p class="q" style="margin-top:1.2em;text-transform:none;letter-spacing:0">Behind? Open exercise/1-brain.html</p>
+  <aside class="notes">[clock 0:17] Chapter card.</aside>
+</section>
+
+<section>
+  <h2>Ask it something</h2>
+  <div class="split">
+<pre class="term">async function ask(userText) {
+  const response =
+    await <span class="hl">engine.chat.completions.create</span>({
+      messages: [{ role: "user", content: userText }],
+    });
+
+  outputEl.textContent =
+    response.choices[0].message.content;
+}</pre>
+    <img class="art side" src="assets/story/voice.png" alt="A peacock chick with an open beak and an empty speech bubble" onerror="this.remove()">
+  </div>
+  <p class="fragment" style="margin-top:.8em">Reload. Ask it anything. Ask again.</p>
+  <aside class="notes">[~5m] Fill in the empty ask() in their file. The quest panel offers a one-click question. First words: let people enjoy it, ask a few to read theirs out. If you know the OpenAI API, this is the same call.</aside>
+</section>
+
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> try it, then tell us what you saw</span>
+  <h2>Now ask for a 200-word story</h2>
+  <p class="big muted fragment" style="margin-top:1em">. . .</p>
+  <p class="fragment"><b class="leak">It just stares at you.</b> The words exist, you just can't see them until the last one is done.</p>
+  <aside class="notes">[~2m] Fail first. The quest panel now has a one-click "200-word story" button: have everyone press it and watch the blank page. Let the silence run, that is the point. Then: "it is thinking, it just isn't telling you". Click.</aside>
+</section>
+
+<section data-lvl="2">
+  <h2>Let it think out loud</h2>
+<pre class="term">const chunks = await engine.chat.completions.create({
+  messages: [{ role: "user", content: userText }],
+  <span class="hl">stream: true,</span>                    <span class="c">// one flag</span>
+});
+
+let reply = "";
+<span class="hl">for await (const chunk of chunks) {</span>
+  reply += chunk.choices[0]?.delta.content || "";
+  outputEl.textContent = reply;    <span class="c">// words appear as they are made</span>
+}</pre>
+  <p class="fragment" style="margin-top:.8em">Same story. Same speed. <b class="real">Feels ten times faster.</b></p>
+  <aside class="notes">[~5m] Same request, one flag and a loop. Press the story button again. The model is no faster, the wait just stopped being invisible. The voice feather lights up when the reply finishes.</aside>
+</section>
+
+<!-- CH 3: PERSONALITY -->
+<section class="chapter" data-background-color="#0f766e">
+  <p class="q">chapter 3</p>
+  <h1>It gets a personality</h1>
+  <p class="q" style="margin-top:1.2em;text-transform:none;letter-spacing:0">Behind? Open exercise/2-voice.html</p>
+  <aside class="notes">[clock 0:29] Chapter card.</aside>
+</section>
+
+<section data-lvl="3">
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> shout a character, we'll type it</span>
+  <h2>Tell it who it is</h2>
+  <div class="split">
+    <div style="flex:1;min-width:0">
+<pre class="term">const system = {
+  <span class="hl">role: "system",</span>
+  content: <span class="g">"You are a pirate. " +
+           "Answer in 2-3 sentences."</span>
+};
+
+<span class="c">// send it first, every time</span>
+messages: [<span class="hl">system</span>, { role: "user", content: userText }],</pre>
+      <p style="margin-top:.6em"><span class="pill">Pirate</span><span class="pill">Shakespeare</span><span class="pill">Grumpy sysadmin</span><span class="pill">5-year-old</span></p>
+    </div>
+    <img class="art side" src="assets/story/personality.png" alt="The peacock chick wearing a pirate hat" onerror="this.remove()">
+  </div>
+  <aside class="notes">[~5m] The system message is the first thing the model reads on every request. Take two or three suggestions from the room and type them live, same question each time so the difference is obvious. Everyone then gives theirs a character, and the third feather lights up on their next message.</aside>
+</section>
+
+<!-- CH 4: MEMORY -->
+<section class="chapter" data-background-color="#0f766e">
+  <p class="q">chapter 4</p>
+  <h1>It forgets you</h1>
+  <p class="q" style="margin-top:1.2em;text-transform:none;letter-spacing:0">Behind? Open exercise/3-character.html</p>
+  <aside class="notes">[clock 0:34] Chapter card. This one is named after the problem, on purpose. If you are past 0:45 at the end of this chapter, skip chapter 6 and go straight to hands.</aside>
+</section>
+
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> predict first: what will it say?</span>
+  <h2>Introduce yourself. Then test it.</h2>
+  <div class="split">
+<pre class="term"><span class="c">you ›</span> My name is Nishant.
+<span class="c">mor ›</span> <span class="g">Ahoy, Nishant!</span>
+
+<span class="c">you ›</span> What's my name?
+<span class="c">mor ›</span> <span class="k fragment">?</span></pre>
+    <img class="art side" src="assets/story/memory.png" alt="The peacock chick writing in a notebook" onerror="this.remove()">
+  </div>
+  <p class="fragment" style="margin-top:.8em"><b class="leak">It has no idea.</b> Every message arrives with no past. The model keeps nothing between calls.</p>
+  <aside class="notes">[~2m] Fail first. Ask for predictions, then have everyone try it with their own name (the quest panel has both lines as buttons). The transcript on the slide is an illustration, their wording will differ. The lesson: the model is stateless. If it "remembers", it is because you sent the conversation again.</aside>
+</section>
+
+<section data-lvl="4">
+  <h2>Memory is just an array</h2>
+<pre class="term">const chatHistory = [system];
+
+<span class="hl">chatHistory.push({ role: "user", content: userText });</span>      <span class="c">// before sending</span>
+
+const chunks = await engine.chat.completions.create({
+  <span class="hl">messages: chatHistory,</span>                                  <span class="c">// send all of it</span>
+  stream: true,
+});
+<span class="c">// ... stream into `reply` as before ...</span>
+
+<span class="hl">chatHistory.push({ role: "assistant", content: reply });</span>  <span class="c">// after receiving</span></pre>
+  <p class="fragment" style="margin-top:.8em"><b class="warn">Save point:</b> four feathers. Behind? Open <code>4-memory.html</code>.</p>
+  <aside class="notes">[~4m] Two pushes and one changed line. Rerun the name test: it works. Fourth feather, and the chick on their page is now a peacock. Anyone behind opens 4-memory.html and is level with the room again. Take a breath here, this is the end of the core loop.</aside>
+</section>
+
+<!-- CH 5: FACE -->
+<section class="chapter" data-background-color="#0f766e">
+  <p class="q">chapter 5</p>
+  <h1>It gets a face</h1>
+  <aside class="notes">[clock 0:40] Chapter card.</aside>
+</section>
+
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> everyone: open 5-face.html</span>
+  <h2>Same brain. New face.</h2>
+  <div class="ba">
+    <div class="side before"><h3>Now</h3><img class="shot" src="assets/checkpoint-screenshot.png" alt="Plain text chat output"></div>
+    <div class="side after"><h3>5-face.html</h3><img class="shot" src="assets/chat-screenshot.png" alt="Styled chat app with bubbles"></div>
+  </div>
+  <aside class="notes">[~1m] Nobody types in this chapter. Everyone opens exercise/5-face.html: it is their loop from chapters 1 to 4 with a face on it, and it is the save point for the rest of the session. Nothing about the AI changes here, only what people see. The next three slides are a read-along of what is different.</aside>
+</section>
+
+<section>
+  <p class="q" style="text-transform:none;letter-spacing:0">read-along · 5-face.html</p>
+  <h2>The layout</h2>
+  <div class="split">
+    <div style="flex:1;min-width:0">
+<pre class="term">&lt;div id="chat-messages"&gt;
+  <span class="c">&lt;!-- messages appear here --&gt;</span>
+&lt;/div&gt;
+
+&lt;div class="input-bar"&gt;
+  &lt;input type="text" id="input"
+         placeholder="Type a message..."&gt;
+  &lt;button id="send"&gt;Send&lt;/button&gt;
+&lt;/div&gt;</pre>
+      <p class="fragment" style="margin-top:.8em">Plus <code>style.css</code>: bubbles, scrolling and the input bar.</p>
+    </div>
+    <img class="art side" src="assets/story/face.png" alt="The peacock chick looking out of a chat window" onerror="this.remove()">
+  </div>
+  <aside class="notes">[~1m] Read-along. Don't teach CSS: two elements and a stylesheet, move on.</aside>
+</section>
+
+<section>
+  <p class="q" style="text-transform:none;letter-spacing:0">read-along · 5-face.html</p>
+  <h2>Put the words in bubbles</h2>
+<pre class="term" style="font-size:.44em">function addMessage(role, text) {
+  const div = document.createElement("div");
+  <span class="hl">div.className = `message ${role}`;</span>
+  div.textContent = text;
+  chatMessages.appendChild(div);
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+  return div;
+}</pre>
+  <p style="margin:.5em 0 0">On send:</p>
+  <ol style="margin:0;font-size:.92em">
+    <li class="fragment">Add the user bubble, then an assistant bubble saying "Thinking..."</li>
+    <li class="fragment">Stream the reply into that bubble</li>
+    <li class="fragment">Disable the input until it finishes</li>
+  </ol>
+  <aside class="notes">[~2m] Read-along. The streaming loop from chapter 2 stays as it is, it just writes into the bubble that addMessage returned instead of into outputEl.</aside>
+</section>
+
+<section data-lvl="5">
+  <p class="q" style="text-transform:none;letter-spacing:0">read-along · 5-face.html</p>
+  <h2>A loading bar, so nobody thinks it broke</h2>
+<pre class="term">const engine = await CreateMLCEngine(
+  "gemma-2-2b-it-q4f16_1-MLC", {
+    initProgressCallback: ({ text, <span class="hl">progress</span> }) =&gt; {
+      loadingStatus.textContent = text;
+      if (progress !== undefined) {
+        <span class="hl">progressEl.style.width = (progress * 100) + "%";</span>
+      }
+    }
+  }
+);
+loadingEl.style.display = "none";
+appEl.style.display = "flex";</pre>
+  <p class="fragment" style="margin-top:.8em"><b class="real">Ask your <code>5-face.html</code> something.</b> Same brain, new face.</p>
+  <aside class="notes">[~2m] Same callback as chapter 1, now with the progress number. Then everyone sends one message in 5-face.html so you know the whole room is on the save point before chapter 6.</aside>
+</section>
+
+<!-- CH 6: MAKE IT YOURS -->
+<section class="chapter" data-background-color="#0f766e">
+  <p class="q">chapter 6</p>
+  <h1>It becomes yours</h1>
+  <p class="q" style="margin-top:1.2em;text-transform:none;letter-spacing:0">Behind? Open exercise/5-face.html</p>
+  <aside class="notes">[clock 0:46] Chapter card. Behind the clock? Skip this chapter: the tools demo is the better payoff.</aside>
+</section>
+
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> tell your neighbour what yours does</span>
+  <h2>Give it a job</h2>
+<pre class="term">const AGENT_NAME      = <span class="g">"FitCoach"</span>;
+const SYSTEM_PROMPT   = <span class="g">`You are a certified fitness coach.
+  Be encouraging. Ask about goals before prescribing.
+  Keep answers to 2-3 sentences.`</span>;
+const WELCOME_MESSAGE = <span class="g">"Hey! Ready to crush your goals?"</span>;</pre>
+  <p style="margin-top:.7em"><span class="pill">Fitness coach</span><span class="pill">Travel guide</span><span class="pill">Language tutor</span><span class="pill">Chef</span><span class="pill">Budget advisor</span><span class="pill">Game master</span><span class="pill">Bash tutor</span></p>
+  <p class="small fragment">Give it its own colour too: <code>--real</code> in <code>style.css</code>. Talk to it for 3 or 4 turns. Refine.</p>
+  <aside class="notes">[~5m] Hands-on again, in their own 5-face.html: these three constants are at the top of its script. 6-yours.html is this exact example finished, for anyone who wants to see one. The pirate was practice. Now everyone picks a real job for theirs and says it out loud to a neighbour, which commits them to it. Walk around.</aside>
+</section>
+
+<section>
+  <h2>Three rules for a good system prompt</h2>
+  <div class="cards">
+    <div class="card"><b>1. Say the tone and the length</b><span class="s">"Keep responses to 2-3 sentences unless asked for detail"</span></div>
+    <div class="card"><b>2. Show the shape you want</b><span class="s">"For a recipe: ingredients list, then numbered steps"</span></div>
+    <div class="card"><b>3. Set boundaries</b><span class="s">"Never give medical diagnoses. Suggest seeing a professional."</span></div>
+  </div>
+  <aside class="notes">[~1m] No exercise, one sentence per card while they keep tinkering. Small models follow short, concrete instructions far better than long ones.</aside>
+</section>
+
+<!-- CH 7: HANDS -->
+<section class="chapter" data-background-color="#0f766e">
+  <p class="q">chapter 7</p>
+  <h1>It gets hands</h1>
+  <p class="q" style="margin-top:1.2em;text-transform:none;letter-spacing:0">Behind? Open exercise/6-yours.html</p>
+  <aside class="notes">[clock 0:52] Chapter card.</aside>
+</section>
+
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> ask yours right now</span>
+  <h2>"What's the weather in Tokyo?"</h2>
+  <div class="split">
+    <div style="flex:1">
+      <p class="fragment"><b class="leak">It guesses, or it gives up.</b></p>
+      <p class="fragment">It can talk about the world. It can't <b>look</b> at it.</p>
+      <p class="fragment">What if it could search Wikipedia, check the weather, do the maths?</p>
+    </div>
+    <img class="art side" src="assets/story/hands.png" alt="The peacock chick holding a wrench and a magnifying glass" onerror="this.remove()">
+  </div>
+  <aside class="notes">[~2m] Fail first. Everyone asks their own agent. Some will get an invented forecast, some an honest "I can't know that". Ask for a show of hands for each. Either way it failed, and both failures have the same cause: it has a brain and no hands.</aside>
+</section>
+
+<section>
+  <p class="q" style="text-transform:none;letter-spacing:0">live demo · 7-hands.html</p>
+  <h2>Same model. Now it can look things up.</h2>
+  <div class="cards">
+    <div class="card"><b>"What's the weather in Tokyo?"</b><span class="s">calls the weather tool</span></div>
+    <div class="card"><b>"How tall is the Eiffel Tower?"</b><span class="s">calls Wikipedia</span></div>
+    <div class="card"><b>Your question</b><span class="s">someone shout one</span></div>
+  </div>
+  <p class="small" style="margin-top:1.2em">Watch for the moment it stops talking and asks for a tool instead.</p>
+  <aside class="notes">[~4m] LIVE: open exercise/7-hands.html. Attendees can open it too. Ask the Tokyo question first, so the room sees the exact failure from a minute ago get fixed. Then the Eiffel Tower, then one from the room. Point at the tool call appearing before the answer.</aside>
+</section>
+
+<section>
+  <h2>How hands work: a loop</h2>
+  <div class="chain">
+    <div class="node" style="width:170px"><b>You ask</b><span class="role">a question</span></div>
+    <span class="lk fragment" data-fragment-index="1">→</span>
+    <div class="node fragment" data-fragment-index="1" style="width:170px"><b class="real">Model</b><span class="role">"I need to look this up"</span></div>
+    <span class="lk fragment" data-fragment-index="2">→</span>
+    <div class="node fragment" data-fragment-index="2" style="width:190px"><b><code>[TOOL weather "Tokyo"]</code></b><span class="role">it writes a marker</span></div>
+    <span class="lk fragment" data-fragment-index="3">→</span>
+    <div class="node fragment" data-fragment-index="3" style="width:170px"><b class="warn">Your code</b><span class="role">runs <code>fetch()</code></span></div>
+    <span class="lk fragment" data-fragment-index="4">→</span>
+    <div class="node fragment" data-fragment-index="4" style="width:170px"><b class="real">Model</b><span class="role">answers from the result</span></div>
+  </div>
+  <p class="fragment" style="margin-top:1.6em">The model never touches the network. <b>It asks. Your JavaScript does.</b></p>
+  <aside class="notes">[~2m] One click per step. The key idea: a tool call is only text. The model writes a marker, your code spots it, runs the real function and pastes the result back into the conversation. It repeats until the model answers without a marker, or MAX_TOOL_ROUNDS is hit.</aside>
+</section>
+
+<section data-lvl="6">
+  <h2>The whole trick: a regex and a loop</h2>
+<pre class="term" style="font-size:.45em"><span class="c">// Model outputs: [TOOL wikipedia "Eiffel Tower"]</span>
+function parseToolCall(text) {
+  const match = <span class="hl">text.match(/\[TOOL\s+(\w+)(?:\s+"([^"]*)")?\]/i);</span>
+  if (!match) return null;
+  return { tool: match[1].toLowerCase(), arg: match[2] || "" };
+}
+
+for (let round = 0; round &lt; MAX_TOOL_ROUNDS; round++) {
+  const { reply } = await getModelResponse();
+  const toolCall = parseToolCall(reply);
+  <span class="hl">if (!toolCall) break;</span>                       <span class="c">// no tool: that was the answer</span>
+
+  const result = await executeTool(toolCall.tool, toolCall.arg);
+  chatHistory.push({ role: "user",
+    content: <span class="g">`[TOOL RESULT]\n${result.text}\n[/TOOL RESULT]`</span> });
+}</pre>
+  <aside class="notes">[~2m] This is read-along, not type-along: the full file is exercise/7-hands.html. Notice it reuses chatHistory from chapter 4. Hands are memory plus a regex.</aside>
+</section>
+
+<section>
+  <h2>Same trick, different hands</h2>
+  <p class="small" style="margin-top:-0.8em">The model writes a marker. Your page turns it into something.</p>
+  <div class="cards">
+    <div class="card"><b>Choose Your Adventure</b><span class="s"><code>[CHOICE_1]</code> becomes a button</span></div>
+    <div class="card"><b>Quiz Tutor</b><span class="s"><code>[CORRECT]</code> / <code>[WRONG]</code> keeps score</span></div>
+    <div class="card"><b>Budget Tracker</b><span class="s"><code>[ADD groceries 45]</code> fills a table</span></div>
+    <div class="card"><b>Flashcards</b><span class="s"><code>[FRONT]</code> <code>[BACK]</code> flips a card</span></div>
+    <div class="card"><b>Escape Room</b><span class="s">three agents, JSON actions</span></div>
+    <div class="card"><b>NPC Civilization</b><span class="s">a Phaser game with AI villagers</span></div>
+  </div>
+  <p class="small fragment" style="margin-top:1em">All in the repo. All run in a browser tab.</p>
+  <aside class="notes">[~1m] Homework ideas, not something to build now. Only open one (adventure/ or escape-room/) if you are ahead of the clock.</aside>
+</section>
+
+<!-- CH 8: HOME -->
+<section class="chapter" data-background-color="#0f766e">
+  <p class="q">chapter 8</p>
+  <h1>It leaves the nest</h1>
+  <aside class="notes">[clock 1:03] Chapter card.</aside>
+</section>
+
+<section data-lvl="7">
+  <p class="q">watch us do it · yours is tonight's homework</p>
+  <h2>Put it on the internet</h2>
+  <div class="split">
+    <div style="flex:1">
+      <div class="cmd fragment" style="grid-template-columns:56px 1fr"><span class="n">1</span><span>Create a new repo on GitHub</span></div>
+      <div class="cmd fragment" style="grid-template-columns:56px 1fr"><span class="n">2</span><span>Push your <code>5-face.html</code> as <code>index.html</code>, with <code>style.css</code> and <code>nest.js</code></span></div>
+      <div class="cmd fragment" style="grid-template-columns:56px 1fr"><span class="n">3</span><span>Settings → Pages → source: <code>main</code> → Save</span></div>
+      <p class="fragment" style="margin-top:1em"><b class="real">Live at</b> <code>username.github.io/repo-name</code></p>
+      <p class="small fragment">You host three text files. Every visitor brings their own GPU. The last feather lights up on <code>github.io</code>.</p>
+    </div>
+    <img class="art side" src="assets/story/home.png" alt="The young peacock with a small backpack, waving goodbye" onerror="this.remove()">
+  </div>
+  <aside class="notes">[~2m] DEMO, nobody follows along: a room full of GitHub logins eats ten minutes. Have a repo already published and show the three steps and the live URL; don't wait for a fresh Pages build. The punchline of "zero cost": there is no inference server to pay for, because each visitor's browser downloads the model and runs it on their own GPU.</aside>
+</section>
+
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> turn your laptop around</span>
+  <h2>Time to show off</h2>
+  <p class="big" style="margin-top:.6em">Show your neighbour what you raised.</p>
+  <p class="small">Its name, its job, one question. Then two volunteers on the big screen.</p>
+  <aside class="notes">[~3m] One minute of neighbours showing each other, then two volunteers plug in or read a conversation out. Applaud the makers. This is the peacock fanning its tail.</aside>
+</section>
+
+<!-- EPILOGUE -->
+<section>
+  <p class="q">epilogue</p>
+  <h2 style="font-size:1.15em;margin-bottom:.2em">Back to the peacock that never phoned home</h2>
+  <img class="art hero" style="max-height:290px" src="assets/story/epilogue.png" alt="A peacock with its tail fully fanned out beside a laptop, network cable unplugged" onerror="this.remove()">
+  <p class="big center" style="margin-top:.2em;margin-bottom:.1em">Wi-Fi off. <span class="real">Yours still answers.</span></p>
+  <p class="center fragment" style="margin:0">Brain, voice, memory: all on your laptop. Only the hands need the network.</p>
+  <aside class="notes">[~2m] Close the loop from the cold open, but now the room does it: everyone turns Wi-Fi off and asks their own agent a question (page already loaded). Be precise: tools that fetch from the web obviously won't work offline, everything else does.</aside>
+</section>
+
+<!-- TAKE HOME -->
+<section>
+  <h2>Old you → new you</h2>
+  <div style="display:grid;grid-template-columns:1.8fr 1fr;gap:1.5em;align-items:center">
+    <div>
+      <div class="row fragment"><span class="b">"AI needs an API key."</span><span class="ar">→</span><span class="a">One import in one HTML file.</span></div>
+      <div class="row fragment"><span class="b">"AI needs a server."</span><span class="ar">→</span><span class="a">Your GPU, in a browser tab.</span></div>
+      <div class="row fragment"><span class="b">"My prompts go to someone's cloud."</span><span class="ar">→</span><span class="a">They never leave the laptop.</span></div>
+      <div class="row fragment"><span class="b">"Agents are magic."</span><span class="ar">→</span><span class="a">An array, a regex and a loop.</span></div>
+      <p class="small" style="margin-top:1.2em">Code: <code>github.com/nkthakur48/peacock-never-phoned-home</code> · Docs: <code>github.com/mlc-ai/web-llm</code><br>Next: Web Workers · JSON output · bigger models · native function calling</p>
+    </div>
+    <div class="center">
+      <img class="art" style="height:130px;margin:0 auto .4em" src="assets/mascot-2026.svg" alt="UbuCon 2026 peacock mascot">
+      <div class="li">
+        <div class="center"><img class="qr" src="assets/qr-nishant.png" alt="LinkedIn QR: Nishant"><p class="small who"><img class="face" src="assets/speaker.png" alt="Nishant"></p></div>
+        <div class="center"><img class="qr" src="assets/qr-aishwarya.png" alt="LinkedIn QR: Aishwarya"><p class="small who"><img class="face" src="assets/speaker-aishwarya.png" alt="Aishwarya"></p></div>
+        <p class="small" style="grid-column:1/-1;margin:0;text-align:center">Find us on LinkedIn</p>
+      </div>
+    </div>
+  </div>
+  <aside class="notes">[~1m, then Q&amp;A] You should be here by about 1:11. One click per row, each one calls back to the meter slide and the chapters. Leave this up for 10 minutes of questions. That leaves roughly 9 minutes of slack in a 90-minute slot; expect chapters 1 and 2 to eat most of it.</aside>
+</section>
+
+</div>
+</div>
+<script src="vendor/reveal.min.js"></script>
+<script src="vendor/notes.js"></script>
+<script>
+  Reveal.initialize({ hash: true, fragmentInURL: false, slideNumber: 'c/t', transition: 'fade', width: 1280, height: 720, margin: 0.06, plugins: [RevealNotes] });
+
+  // progress strip: data-lvl on a slide = feathers earned from there on; slides before the first one hide the strip
+  const grow = document.getElementById('grow');
+  let lvl, lit = 0;
+  document.querySelectorAll('.slides > section').forEach(s => { if (s.dataset.lvl) lvl = s.dataset.lvl; else if (lvl) s.dataset.lvl = lvl; });
+  const mark = e => {
+    const n = e.currentSlide.dataset.lvl, dark = e.currentSlide.classList.contains('chapter');
+    grow.style.display = n && !dark ? 'block' : 'none';
+    [...grow.children].forEach((c, i) => { c.classList.remove('new'); c.classList.toggle('on', i < n); });
+    if (n > lit) { const c = grow.children[n - 1]; void c.offsetWidth; c.classList.add('new'); }  // a feather was just earned: pop it
+    lit = +n || 0;
+  };
+  Reveal.on('ready', mark);
+  Reveal.on('slidechanged', mark);
+</script>
+</body>
+</html>

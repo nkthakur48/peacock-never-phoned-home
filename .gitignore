@@ -1,0 +1,31 @@
+# Allowlist: track only the workshop files and the assets they use.
+/*
+!/.gitignore
+!/README.md
+!/index.html
+!/slides.html
+!/check.sh
+
+# exercise files (all of them, including the shared nest.js and style.css)
+!/exercise/
+
+!/assets/
+/assets/*
+!/assets/chat-screenshot.png
+!/assets/checkpoint-screenshot.png
+!/assets/mascot-2026.svg
+!/assets/qr-aishwarya.png
+!/assets/qr-nishant.png
+!/assets/speaker-aishwarya.png
+!/assets/speaker.png
+!/assets/story/
+
+!/vendor/
+/vendor/*
+!/vendor/reveal.min.css
+!/vendor/reveal.min.js
+!/vendor/white.min.css
+!/vendor/notes.js
+
+# never, anywhere
+.DS_Store
