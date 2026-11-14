@@ -67,6 +67,7 @@ textarea::placeholder{color:#6b6b6b}
 .btn:hover:not(:disabled){background:#2c2c2c}
 .btn:active:not(:disabled){transform:translateY(1px)}
 .btn:disabled{background:var(--active);border-color:var(--active);color:var(--muted);cursor:not-allowed}
+#sample{height:32px;padding:0 10px;border:1px solid var(--control);border-radius:var(--r-ctl);background:var(--surface);cursor:pointer;max-width:60%}
 .link{background:none;border:0;padding:0;color:var(--text);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .link:hover{color:var(--hue)}
 .note{color:var(--muted);font-size:13px;line-height:18px}
@@ -159,7 +160,15 @@ th.r,td.r{text-align:right;padding-right:0}
 
     <div class="work">
       <section class="card" aria-labelledby="nh">
-        <div class="head"><h2 id="nh">Lecture notes</h2><button class="link" id="sample" type="button">Use sample notes</button></div>
+        <div class="head"><h2 id="nh">Lecture notes</h2><select id="sample" aria-label="Use sample notes">
+          <option value="">Use sample notes</option>
+          <option>Biology: photosynthesis</option>
+          <option>History: the French Revolution</option>
+          <option>Computer science: sorting algorithms</option>
+          <option>Economics: supply and demand</option>
+          <option>Linux: file permissions</option>
+          <option>Physics: Newton's laws</option>
+        </select></div>
         <textarea id="notes" placeholder="Paste at least a few paragraphs of notes here."></textarea>
         <div class="row">
           <fieldset class="seg"><legend>Number of questions</legend>
@@ -197,11 +206,45 @@ const stage = $("stage"), go = $("go"), hint = $("hint");
 const L = "ABCD";
 let engine, quiz = [], res = [], i = 0, title = "", sessions = [];
 
-const SAMPLE = `Photosynthesis is the process by which plants, algae and some bacteria turn light energy into chemical energy stored in glucose. In plants it takes place in the chloroplasts, which contain the green pigment chlorophyll. Chlorophyll absorbs mostly red and blue light and reflects green, which is why leaves look green.
+const SAMPLES = {
+"Biology: photosynthesis": `Photosynthesis is the process by which plants, algae and some bacteria turn light energy into chemical energy stored in glucose. In plants it takes place in the chloroplasts, which contain the green pigment chlorophyll. Chlorophyll absorbs mostly red and blue light and reflects green, which is why leaves look green.
 
 The process has two stages. In the light-dependent reactions, which happen in the thylakoid membranes, light energy splits water molecules, releasing oxygen as a by-product and producing the energy carriers ATP and NADPH. In the Calvin cycle, which happens in the stroma, the plant uses ATP and NADPH to fix carbon dioxide from the air into glucose.
 
-The overall equation is 6CO2 + 6H2O + light energy -> C6H12O6 + 6O2. Factors that limit the rate of photosynthesis include light intensity, carbon dioxide concentration and temperature. Above roughly 40 degrees Celsius the enzymes involved begin to denature and the rate falls sharply.`;
+The overall equation is 6CO2 + 6H2O + light energy -> C6H12O6 + 6O2. Factors that limit the rate of photosynthesis include light intensity, carbon dioxide concentration and temperature. Above roughly 40 degrees Celsius the enzymes involved begin to denature and the rate falls sharply.`,
+
+"History: the French Revolution": `The French Revolution began in 1789 and transformed France from an absolute monarchy into a republic. Its causes included a financial crisis caused by years of war and royal spending, unfair taxes that fell mostly on the Third Estate, and a poor harvest that pushed up the price of bread.
+
+In May 1789 King Louis XVI called the Estates-General for the first time since 1614. The Third Estate, which represented ordinary people, declared itself the National Assembly in June. On 14 July 1789 a crowd stormed the Bastille, a royal prison in Paris, which became a symbol of the revolution.
+
+In August 1789 the Assembly adopted the Declaration of the Rights of Man and of the Citizen, which stated that all men are born free and equal in rights. The monarchy was abolished in September 1792, and Louis XVI was executed by guillotine in January 1793. During the Reign of Terror in 1793 and 1794, led by Maximilien Robespierre and the Committee of Public Safety, thousands of suspected enemies of the revolution were executed. The revolution ended in 1799 when Napoleon Bonaparte seized power in a coup.`,
+
+"Computer science: sorting algorithms": `A sorting algorithm puts the items of a list into order. Bubble sort repeatedly compares neighbouring items and swaps them when they are in the wrong order. It is simple but slow, with a worst-case time complexity of O(n squared).
+
+Merge sort uses divide and conquer. It splits the list in half, sorts each half recursively, and then merges the two sorted halves. Its time complexity is O(n log n) in the best, average and worst cases, but it needs extra memory of size O(n) for the merge step. Merge sort is stable, which means equal items keep their original relative order.
+
+Quicksort picks an item called the pivot and partitions the list into items smaller than the pivot and items larger than the pivot, then sorts each part recursively. Its average time complexity is O(n log n), but a bad choice of pivot gives a worst case of O(n squared). Quicksort sorts in place and is usually faster than merge sort in practice because it uses memory efficiently. Python's built-in sort, called Timsort, combines merge sort and insertion sort and runs in O(n log n) in the worst case.`,
+
+"Economics: supply and demand": `The law of demand says that, when other things stay the same, a higher price lowers the quantity of a good that consumers want to buy. The law of supply says that a higher price raises the quantity that producers are willing to sell. On a graph the demand curve slopes downward and the supply curve slopes upward.
+
+The market equilibrium is the price at which the quantity demanded equals the quantity supplied. If the price is above equilibrium, there is a surplus, because producers supply more than consumers buy, and the price tends to fall. If the price is below equilibrium, there is a shortage, and the price tends to rise.
+
+Demand shifts when something other than price changes, such as consumer income, tastes or the price of a substitute good. A rise in income increases demand for a normal good and shifts the demand curve to the right. Price elasticity of demand measures how strongly the quantity demanded responds to a change in price. Demand is elastic when the elasticity is greater than 1, which is common for luxury goods with many substitutes. A price ceiling set below the equilibrium price causes a shortage.`,
+
+"Linux: file permissions": `Every file on Linux has an owner, a group and a set of permissions. There are three kinds of permission: read, write and execute, written r, w and x. They are set separately for three classes of user: the owner, the group and others.
+
+The command ls -l shows permissions as a string such as -rwxr-xr--. The first character shows the file type, where a dash means a regular file and d means a directory. The next nine characters are three groups of three, for the owner, the group and others. In this example the owner can read, write and execute, the group can read and execute, and others can only read.
+
+Permissions can also be written as octal numbers, where read is 4, write is 2 and execute is 1. The permission rwx is therefore 7, r-x is 5 and r-- is 4, so -rwxr-xr-- is the same as 754. The chmod command changes permissions, for example chmod 644 notes.txt gives the owner read and write access and everyone else read-only access. The chown command changes the owner of a file. On a directory, the execute permission means a user is allowed to enter it. The root user can ignore these permissions.`,
+
+"Physics: Newton's laws": `Newton's first law says that an object stays at rest or keeps moving at a constant velocity unless a net force acts on it. This property is called inertia. It explains why passengers lurch forward when a car brakes suddenly.
+
+Newton's second law says that the net force on an object equals its mass multiplied by its acceleration, written F = ma. Force is measured in newtons, where one newton is the force that gives a mass of one kilogram an acceleration of one metre per second squared. For the same force, an object with more mass accelerates less.
+
+Newton's third law says that when one object exerts a force on a second object, the second object exerts an equal and opposite force on the first. These two forces act on different objects, so they never cancel each other out. A rocket moves upward because it pushes exhaust gas downward and the gas pushes the rocket upward.
+
+Weight is the force of gravity on an object, calculated as mass multiplied by gravitational field strength. Near the surface of the Earth the gravitational field strength is about 9.8 newtons per kilogram. A 10 kilogram mass therefore weighs about 98 newtons, but its mass is the same on the Moon.`
+};
 
 const SCHEMA = JSON.stringify({
   type: "object",
@@ -241,7 +284,7 @@ async function init() {
   go.disabled = false;
 }
 
-$("sample").onclick = () => { $("notes").value = SAMPLE; $("notes").focus(); };
+$("sample").onchange = e => { if (!SAMPLES[e.target.value]) return; $("notes").value = SAMPLES[e.target.value]; e.target.selectedIndex = 0; $("notes").focus(); };
 
 go.onclick = async () => {
   const notes = $("notes").value.trim(), n = +document.querySelector("[name=n]:checked").value;
