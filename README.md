@@ -21,6 +21,7 @@ Serve this folder the same way you did for the prework (the browser caches the m
 - [`index.html`](index.html): the landing page. Links to the slides, the setup steps and every exercise file. Send attendees here.
 - [`slides.html`](slides.html): the deck.
 - [`exercise/0-egg.html`](exercise/0-egg.html): where attendees start.
+- [`showcase/`](showcase/): six finished apps built with the same trick as chapter 7 (adventure, quiz-tutor, budget, flashcards, escape-room, npc-civilization). Homework ideas, linked from the landing page.
 
 ## Exercise files
 
@@ -46,6 +47,10 @@ It draws the bird, the feather strip and the next quest on every exercise file, 
 - **Files 0 to 4:** it awards feathers by reading the request your code sends to the model (`stream: true`, a leading system message, an assistant message in the history).
 - **Files 5 to 7:** it is a slim bar above the chat. The face feather lights when the chat appears, and the hands feather when the model first calls a tool.
 - **Pills:** every page shows example prompts for the chapter you are on, for instance long-story prompts while you add streaming, and "My name is Mor." then "What's my name?" while you add memory. Clicking a pill fills the chat box, then you press Send.
+
+## Versions
+
+The libraries are pinned (WebLLM 0.2.88, marked 15.0.12, DOMPurify 3.4.17) so a new release can't break the room. To upgrade, change the version in every file (`grep -rn "esm.run" .`) and re-run `./check.sh`.
 
 ## Checks
 

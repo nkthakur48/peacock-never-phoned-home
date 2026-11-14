@@ -10,6 +10,9 @@
 # exercise files (all of them, including the shared nest.js and style.css)
 !/exercise/
 
+# showcase: the homework-idea apps shown in the slides
+!/showcase/
+
 !/assets/
 /assets/*
 !/assets/chat-screenshot.png

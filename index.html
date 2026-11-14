@@ -62,6 +62,8 @@
   .ex .open { font-weight: 600; text-underline-offset: 5px; white-space: nowrap; }
   .ex .open:hover { text-decoration-thickness: 3px; }
   .ex .home { font-weight: 600; }
+  .show { padding-top: 140px; }
+  .show li { grid-template-columns: 1fr auto; }
 
   /* footer: the name comes back at full width */
   footer { background: var(--teal); color: #fff; padding: 120px var(--pad) 56px; margin-top: 0; }
@@ -83,6 +85,8 @@
     .ex li { grid-template-columns: 96px 1fr; gap: 8px 20px; }
     .ex .pic, .ex .pic img { width: 96px; height: 96px; }
     .ex .open, .ex .home { grid-column: 2; }
+    .show li { grid-template-columns: 1fr; }
+    .show .open { grid-column: 1; }
     .ex li p { font-size: 18px; }
     footer { padding: 80px var(--pad) 40px; }
   }
@@ -94,6 +98,7 @@
   <nav>
     <a href="#setup">Setup</a>
     <a href="#exercises">Exercises</a>
+    <a href="#showcase">Showcase</a>
     <a class="btn" href="slides.html">Open the slides</a>
   </nav>
 </header>
@@ -176,6 +181,39 @@
       <div class="pic"><img class="art" src="assets/story/home.png" alt="" onerror="this.remove()"></div>
       <div><h3>Home</h3><p>Chapter 8, tonight's homework. Push your 5-face.html to GitHub Pages as index.html. The last feather lights up on github.io.</p></div>
       <span class="home">Homework</span>
+    </li>
+  </ol>
+</div>
+
+<div class="ex show" id="showcase">
+  <div class="head">
+    <h2>Showcase: same trick, different hands</h2>
+    <p>Homework ideas, built the same way as chapter 7: the model writes a marker and the page turns it into something. Same model, same address, so they load from your cache. Open the code and see how little there is.</p>
+  </div>
+  <ol>
+    <li>
+      <div><h3>Choose Your Adventure</h3><p>The model writes <code>[CHOICE_1]</code> and your page turns it into a button.</p></div>
+      <a class="open" href="showcase/adventure/">Open adventure</a>
+    </li>
+    <li>
+      <div><h3>Quiz Tutor</h3><p><code>[CORRECT]</code> and <code>[WRONG]</code> markers keep the score.</p></div>
+      <a class="open" href="showcase/quiz-tutor/">Open quiz-tutor</a>
+    </li>
+    <li>
+      <div><h3>Budget Tracker</h3><p><code>[ADD groceries 45]</code> fills a table.</p></div>
+      <a class="open" href="showcase/budget/">Open budget</a>
+    </li>
+    <li>
+      <div><h3>Flashcards</h3><p><code>[FRONT]</code> and <code>[BACK]</code> flip a card.</p></div>
+      <a class="open" href="showcase/flashcards/">Open flashcards</a>
+    </li>
+    <li>
+      <div><h3>Escape Room</h3><p>Three agents that answer in JSON actions.</p></div>
+      <a class="open" href="showcase/escape-room/">Open escape-room</a>
+    </li>
+    <li>
+      <div><h3>NPC Civilization</h3><p>A Phaser game with AI villagers.</p></div>
+      <a class="open" href="showcase/npc-civilization/">Open npc-civilization</a>
     </li>
   </ol>
 </div>
