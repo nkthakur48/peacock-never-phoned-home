@@ -93,7 +93,6 @@ textarea::placeholder{color:#6b6b6b}
 .fb.ok{background:var(--ok-bg);color:var(--ok-ink)}
 .fb.bad{background:var(--bad-bg);color:var(--bad-ink)}
 .fb b{display:block;font-weight:500}
-.fb .src{display:block;margin-top:8px;font-size:13px;line-height:18px;opacity:.85}
 .skel{display:grid;gap:12px}.skel i{display:block;height:20px;border-radius:4px;background:var(--active)}
 .skel i:first-child{height:28px;width:80%}
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);border-radius:var(--r-card)}
@@ -209,21 +208,11 @@ const SCHEMA = JSON.stringify({
     question: { type: "string" },
     options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
     answer: { type: "integer", minimum: 0, maximum: 3 },
-    evidence: { type: "string" },
     why: { type: "string" } },
-    required: ["question", "options", "answer", "evidence", "why"] } } },
+    required: ["question", "options", "answer", "why"] } } },
   required: ["questions"] });
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
-// Grounding: a question survives only if (1) its evidence is a verbatim quote from the notes
-// and (2) the model, shown only the notes, independently picks the same answer.
-const norm = t => t.toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim();
-async function grounded(q, notes, nn) {
-  if (q.evidence.length < 20 || !nn.includes(norm(q.evidence))) return false;
-  const r = await engine.chat.completions.create({ temperature: 0, max_tokens: 2, messages: [{ role: "user", content:
-    `Using ONLY the notes, which option answers the question? Reply with just the letter, or X if the notes do not say.\n\nNOTES:\n${notes}\n\nQUESTION: ${q.question}\n${q.options.map((o, k) => `${L[k]}. ${o}`).join("\n")}` }] });
-  return r.choices[0].message.content.trim().toUpperCase().startsWith(L[q.answer]);
-}
 const marks = () => `<div class="marks" role="img" aria-label="${res.filter(r => r.ok).length} of ${quiz.length} correct so far">${quiz.map((_, k) =>
   `<i class="${k < res.length ? (res[k].ok ? "ok" : "bad") : k === i ? "cur" : ""}"></i>`).join("")}</div>`;
 
@@ -245,28 +234,19 @@ go.onclick = async () => {
   if (notes.length < 80) { hint.innerHTML = '<span class="err">Paste a little more (80+ characters) so the questions have something to test.</span>'; return; }
   hint.textContent = "Notes are trimmed to about 6,000 characters.";
   go.disabled = true;
-  const text = notes.slice(0, 6000), nn = norm(text);
   title = notes.split(/[.\n]/)[0].slice(0, 40);
-  const busy = m => stage.innerHTML = `<h2>Quiz</h2><div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="note">${m}</div>`;
-  busy(`Writing questions on this device. Usually 10 to 40 seconds.`);
+  stage.innerHTML = `<h2>Quiz</h2><div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="note">Writing ${n} questions on this device. Usually 10 to 40 seconds.</div>`;
   try {
     const r = await engine.chat.completions.create({
-      temperature: 0.2,
+      temperature: 0.4,
       response_format: { type: "json_object", schema: SCHEMA },
       messages: [{ role: "user", content:
-        `Write ${n + 3} multiple-choice questions testing the notes below. Rules: every question must be answerable from the notes alone, with no outside knowledge. Each has 4 options, exactly one correct, the others plausible but clearly wrong according to the notes. "answer" is the 0-based index of the correct option. "evidence" is ONE sentence copied word for word from the notes that proves the answer. "why" is one sentence explaining the answer.\n\nNOTES:\n${text}` }] });
-    const cand = JSON.parse(r.choices[0].message.content).questions.filter(q => q.options?.length === 4 && q.options[q.answer] !== undefined && q.evidence);
-    quiz = [];
-    for (const [k, q] of cand.entries()) {
-      if (quiz.length === n) break;
-      busy(`Checking question ${k + 1} of ${cand.length} against your notes. Kept ${quiz.length} so far.`);
-      if (await grounded(q, text, nn)) quiz.push(q);
-    }
+        `Write ${n} multiple-choice questions testing the notes below. Each has 4 options, exactly one correct. "answer" is the 0-based index of the correct option. "why" is one sentence explaining the correct answer, using only the notes.\n\nNOTES:\n${notes.slice(0, 6000)}` }] });
+    quiz = JSON.parse(r.choices[0].message.content).questions.filter(q => q.options?.length === 4 && q.options[q.answer] !== undefined);
     if (!quiz.length) throw 0;
-    if (quiz.length < n) hint.textContent = `Only ${quiz.length} of ${n} questions could be tied to a line in your notes. Longer notes give more.`;
     i = 0; res = []; show();
   } catch {
-    stage.innerHTML = `<h2>Quiz</h2><div class="note err">Couldn't make questions that your notes clearly support. Try longer or more detailed notes. <button class="link" id="retry">Retry</button></div>`;
+    stage.innerHTML = `<h2>Quiz</h2><div class="note err">Couldn't write the quiz this time. The small model sometimes returns broken output. <button class="link" id="retry">Retry</button></div>`;
     $("retry").onclick = () => go.click();
   }
   go.disabled = false;
@@ -293,13 +273,13 @@ async function grade(k) {
   if (!ok) { btns[k].classList.add("bad"); btns[k].insertAdjacentHTML("beforeend", '<span class="tag">Your answer</span>'); }
   stage.querySelector(".marks").outerHTML = marks();
   const fb = $("fb");
-  fb.innerHTML = `<div class="fb ${ok ? "ok" : "bad"}"><b>${ok ? "Correct" : "Not quite"}</b><span id="txt">${esc(q.why)}</span><span class="src">From your notes: “${esc(q.evidence)}”</span></div>`;
+  fb.innerHTML = `<div class="fb ${ok ? "ok" : "bad"}"><b>${ok ? "Correct" : "Not quite"}</b><span id="txt">${esc(q.why)}</span></div>`;
   const next = `<div class="row" style="margin-top:12px"><span class="note">${res.filter(r => r.ok).length} of ${res.length} correct</span><button class="btn" id="next">${i + 1 < quiz.length ? "Next question" : "See results"}</button></div>`;
   if (!ok) {
     // stream a tailored explanation of this specific mistake
     const txt = $("txt"); txt.textContent = "";
     const s = await engine.chat.completions.create({ stream: true, temperature: 0.3, messages: [{ role: "user", content:
-      `Quiz question: ${q.question}\nStudent picked: ${q.options[k]}\nCorrect answer: ${q.options[q.answer]}\nSource excerpt from the student's notes: "${q.evidence}"\nIn 2 or 3 short sentences, explain why the student's pick is wrong and why the correct answer is right, using only that excerpt. Be kind.` }] });
+      `Quiz question: ${q.question}\nStudent picked: ${q.options[k]}\nCorrect answer: ${q.options[q.answer]}\nIn 2 or 3 short sentences, explain why the student's pick is wrong and why the correct answer is right. Be kind.` }] });
     for await (const c of s) txt.textContent += c.choices[0]?.delta?.content ?? "";
   }
   fb.insertAdjacentHTML("beforeend", next);
