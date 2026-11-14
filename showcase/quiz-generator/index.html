@@ -266,7 +266,7 @@ function source(q, sents) {
   let best = null, top = 0;
   for (const s of sents) {
     const sw = terms(s), qh = hits(qa, sw), ah = aw.size ? hits(aw, sw) / aw.size : 1, score = qh + 2 * ah;
-    if (qh >= 2 && ah >= 0.5 && score > top) { top = score; best = s; }
+    if ((qh >= 2 && ah >= 0.5 || qh === 1 && ah === 1) && score > top) { top = score; best = s; }
   }
   return best;
 }
@@ -292,22 +292,32 @@ go.onclick = async () => {
   hint.textContent = "Notes are trimmed to about 6,000 characters.";
   go.disabled = true;
   title = notes.split(/[.\n]/)[0].slice(0, 40);
-  stage.innerHTML = `<h2>Quiz</h2><div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="note">Writing ${n} questions on this device. Usually 10 to 40 seconds.</div>`;
-  try {
-    const r = await engine.chat.completions.create({
-      temperature: 0.4,
-      response_format: { type: "json_object", schema: SCHEMA },
-      messages: [{ role: "user", content:
-        `Write ${n + 2} multiple-choice questions testing the notes below. Use only facts stated in the notes, never outside knowledge. Each has 4 options, exactly one correct. "answer" is the 0-based index of the correct option. "why" is one sentence explaining the correct answer, using only the notes.\n\nNOTES:\n${notes.slice(0, 6000)}` }] });
-    const sents = notes.slice(0, 6000).split(/(?<=[.!?])\s+|\n+/).filter(x => x.length > 20);
-    quiz = JSON.parse(r.choices[0].message.content).questions
-      .filter(q => q.options?.length === 4 && q.options[q.answer] !== undefined)
-      .map(q => ({ ...q, src: source(q, sents) })).filter(q => q.src).slice(0, n);
-    if (!quiz.length) throw 0;
+  const text = notes.slice(0, 6000), sents = text.split(/(?<=[.!?])\s+|\n+/).filter(x => x.length > 20);
+  const busy = m => stage.innerHTML = `<h2>Quiz</h2><div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="note">${m}</div>`;
+  quiz = []; let why = "The model returned nothing usable.";
+  // Up to 3 attempts: small models sometimes emit bad JSON or questions the notes don't back.
+  for (let a = 0; a < 3 && quiz.length < n; a++) {
+    busy(a ? `Some questions weren't backed by your notes. Trying again (${a + 1} of 3)…` : `Writing ${n} questions on this device. Usually 10 to 40 seconds.`);
+    try {
+      const r = await engine.chat.completions.create({
+        temperature: 0.4 + a * 0.2,
+        response_format: { type: "json_object", schema: SCHEMA },
+        messages: [{ role: "user", content:
+          `Write ${n + 3} multiple-choice questions testing the notes below. Use only facts stated in the notes, never outside knowledge. Reuse the notes' own wording in the question and the correct option. Each has 4 options, exactly one correct. "answer" is the 0-based index of the correct option. "why" is one sentence explaining the correct answer, using only the notes.\n\nNOTES:\n${text}` }] });
+      const got = JSON.parse(r.choices[0].message.content).questions
+        .filter(q => q.options?.length === 4 && q.options[q.answer] !== undefined && !quiz.some(k => k.question === q.question))
+        .map(q => ({ ...q, src: source(q, sents) }));
+      const ok = got.filter(q => q.src);
+      if (!ok.length) why = "None of the questions could be matched to a line in your notes.";
+      quiz.push(...ok);
+    } catch (e) { why = "The model's reply was cut off or malformed."; }
+  }
+  quiz = quiz.slice(0, n);
+  if (quiz.length) {
     if (quiz.length < n) hint.textContent = `Kept ${quiz.length} of ${n} questions: the rest weren't backed by a line in your notes.`;
     i = 0; res = []; show();
-  } catch {
-    stage.innerHTML = `<h2>Quiz</h2><div class="note err">Couldn't make questions your notes clearly support. Try longer, more detailed notes. <button class="link" id="retry">Retry</button></div>`;
+  } else {
+    stage.innerHTML = `<h2>Quiz</h2><div class="note err">${why} Try again, or use longer, more detailed notes. <button class="link" id="retry">Retry</button></div>`;
     $("retry").onclick = () => go.click();
   }
   go.disabled = false;
