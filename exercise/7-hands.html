@@ -17,23 +17,23 @@
     <div id="loading-status">Initializing...</div>
   </div>
 
-  <div id="app">
-    <div class="header">
-      <h1>Research Agent</h1>
-      <button id="clear-btn">New Research</button>
+  <div id="app" class="with-log">
+    <div class="chat-col">
+      <div class="header">
+        <h1>Research Agent</h1>
+        <button id="clear-btn">New Research</button>
+      </div>
+      <div class="tool-bar">Tools: Wikipedia, Weather, Calculator, DateTime</div>
+      <div id="chat-messages"></div>
+      <div class="input-bar">
+        <input type="text" id="input" placeholder="Ask me anything — I can search Wikipedia..." />
+        <button id="send">Send</button>
+      </div>
     </div>
-    <div class="tool-bar">
-      <span>Tools: Wikipedia, Weather, Calculator, DateTime</span>
-      <span id="tool-count">0 tool calls</span>
-    </div>
-    <div class="sources" id="sources" style="display:none;">
-      <div class="sources-label">Sources</div>
-    </div>
-    <div id="chat-messages"></div>
-    <div class="input-bar">
-      <input type="text" id="input" placeholder="Ask me anything — I can search Wikipedia..." />
-      <button id="send">Send</button>
-    </div>
+    <aside id="log">
+      <div class="log-head">Tool log <span id="tool-count">0 tool calls</span></div>
+      <ol id="tool-list"></ol>
+    </aside>
   </div>
 
   <script src="nest.js" data-page="7"></script>  <!-- your peacock, its feathers and your next quest -->
@@ -84,7 +84,8 @@ You: [TOOL weather "Paris"]
     const sendBtn = document.getElementById("send");
     const clearBtn = document.getElementById("clear-btn");
     const toolCountEl = document.getElementById("tool-count");
-    const sourcesEl = document.getElementById("sources");
+    const toolListEl = document.getElementById("tool-list");
+    const logEl = document.getElementById("log");
 
     const engine = await CreateMLCEngine("gemma-2-2b-it-q4f16_1-MLC", {
       initProgressCallback: ({ text, progress }) => {
@@ -181,29 +182,42 @@ You: [TOOL weather "Paris"]
     }
 
     async function executeTool(toolName, toolArg) {
-      switch (toolName) {
-        case "wikipedia": return await searchWikipedia(toolArg);
-        case "calc": return calculate(toolArg);
-        case "datetime": return getDateTime();
-        case "weather": return await getWeather(toolArg);
-        default: return { text: `Unknown tool: ${toolName}` };
+      try {
+        switch (toolName) {
+          case "wikipedia": return await searchWikipedia(toolArg);
+          case "calc": return calculate(toolArg);
+          case "datetime": return getDateTime();
+          case "weather": return await getWeather(toolArg);
+          default: return { text: `Unknown tool: ${toolName}` };
+        }
+      } catch (e) {
+        return { text: `Tool failed: ${e.message}` };  // e.g. offline: tell the model instead of leaving the page stuck
       }
+    }
+
+    // Running log, right panel: an entry appears the moment the model asks for a tool and fills in when the tool returns
+    function logStart(marker, userText) {
+      const li = document.createElement("li"), head = document.createElement("div"), why = document.createElement("small"), body = document.createElement("pre");
+      head.textContent = marker;
+      why.textContent = `for: ${userText}`;
+      body.textContent = "running…";
+      li.append(head, why, body);   // textContent everywhere: the result comes from the internet
+      toolListEl.append(li);
+      logEl.scrollTop = logEl.scrollHeight;
+      const t0 = performance.now();
+      return result => {
+        head.textContent += ` · ${Math.round(performance.now() - t0)} ms`;
+        body.textContent = result.text;
+        if (result.image) li.append(Object.assign(document.createElement("img"), { src: result.image, alt: result.title || "", loading: "lazy" }));
+        if (result.url) li.append(Object.assign(document.createElement("a"), { href: result.url, target: "_blank", rel: "noopener", textContent: result.title || result.url }));
+        logEl.scrollTop = logEl.scrollHeight;
+      };
     }
 
     function parseToolCall(text) {
       const match = text.match(/\[TOOL\s+(\w+)(?:\s+"([^"]*)")?\]/i);
       if (!match) return null;
       return { tool: match[1].toLowerCase(), arg: match[2] || "" };
-    }
-
-    function addSource(url, title) {
-      if (!url) return;
-      sourcesEl.style.display = "block";
-      const link = document.createElement("a");
-      link.href = url;
-      link.target = "_blank";
-      link.textContent = title || url;
-      sourcesEl.appendChild(link);
     }
 
     // --- Markdown ---
@@ -222,19 +236,6 @@ You: [TOOL weather "Paris"]
       } else {
         div.textContent = text;
       }
-      chatMessages.appendChild(div);
-      chatMessages.scrollTop = chatMessages.scrollHeight;
-      return div;
-    }
-
-    function addImage(src, alt) {
-      const div = document.createElement("div");
-      div.className = "message tool-image";
-      const img = document.createElement("img");
-      img.src = src;
-      img.alt = alt || "";
-      img.loading = "lazy";
-      div.appendChild(img);
       chatMessages.appendChild(div);
       chatMessages.scrollTop = chatMessages.scrollHeight;
       return div;
@@ -291,13 +292,9 @@ You: [TOOL weather "Paris"]
         toolCountEl.textContent = `${toolCalls} tool call${toolCalls !== 1 ? "s" : ""}`;
 
         // Execute the tool
+        const done = logStart(`[TOOL ${toolCall.tool}${toolCall.arg ? ` "${toolCall.arg}"` : ""}]`, userText);
         const result = await executeTool(toolCall.tool, toolCall.arg);
-
-        // Show tool result in chat
-        addMessage("tool-result", result.text);
-        if (result.image) addImage(result.image, result.title);
-
-        if (result.url) addSource(result.url, result.title);
+        done(result);
 
         // Inject result into chat history so model can use it
         chatHistory.push({
@@ -325,8 +322,7 @@ You: [TOOL weather "Paris"]
       chatMessages.innerHTML = "";
       toolCalls = 0;
       toolCountEl.textContent = "0 tool calls";
-      sourcesEl.style.display = "none";
-      sourcesEl.querySelectorAll("a").forEach(a => a.remove());
+      toolListEl.replaceChildren();
       addMessage("welcome", WELCOME);
       inputEl.focus();
     });
