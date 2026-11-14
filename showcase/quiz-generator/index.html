@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pop Quiz · quizzes from your own notes</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;700&display=swap" rel="stylesheet">
+<style>
+/* Achromatic ledger: ink chrome, one blue on the question you're on, pale pairs for right/wrong. */
+:root{
+  --ground:#f2f4f7;--surface:#fff;--raised:#eceef2;--active:#e6e8ed;
+  --border:#e1e4ea;--rule:#eef0f3;--control:#cdd1d9;
+  --text:#0a0a0a;--muted:#5e636e;--primary:#141414;--hue:#1d5fbf;
+  --positive:#247b50;--negative:#c4242a;
+  --ok-bg:#dcfae5;--ok-ink:#04250e;--bad-bg:#ffedea;--bad-ink:#831c1e;
+  --r-card:8px;--r-ctl:6px;--gap:12px;--pad:24px;--ctl:36px;
+  --font:"Geist",Inter,system-ui,sans-serif;
+}
+*{box-sizing:border-box}
+body{margin:0;background:var(--ground);color:var(--text);font:400 14px/20px var(--font);font-variant-numeric:tabular-nums}
+button,textarea{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--hue);outline-offset:2px}
+
+.shell{display:grid;grid-template-columns:256px minmax(0,1fr);min-height:100dvh}
+/* sidebar */
+aside{padding:32px 16px 24px;display:flex;flex-direction:column;gap:28px;position:sticky;top:0;height:100dvh}
+.brand{display:flex;gap:10px;align-items:center;padding:0 8px;font-weight:500;font-size:16px}
+.brand svg{width:28px;height:28px;flex:none}
+.group h2{margin:0 8px 8px;font:400 13px/18px var(--font);color:var(--muted)}
+.kv{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:8px 12px}
+.kv div{display:flex;justify-content:space-between;height:28px;align-items:center}
+.kv span{color:var(--muted)}
+.load{padding:4px 12px 12px;display:grid;gap:6px}
+progress{appearance:none;width:100%;height:6px;border:0;border-radius:6px;background:var(--active);overflow:hidden}
+progress::-webkit-progress-bar{background:var(--active)}
+progress::-webkit-progress-value{background:var(--text);border-radius:6px}
+progress::-moz-progress-bar{background:var(--text)}
+.ends{display:flex;justify-content:space-between;color:var(--muted);font-size:13px;line-height:18px}
+.group{min-width:0}
+.hist{list-style:none;margin:0;padding:0;display:grid;grid-template-columns:minmax(0,1fr);gap:2px}
+.hist li{display:flex;justify-content:space-between;gap:12px;padding:0 8px;height:34px;align-items:center;border-radius:var(--r-ctl)}
+.hist li:first-child.on{background:var(--active)}
+.hist b{font-weight:500;flex:none}.hist .t{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hist .none{color:var(--muted)}
+.foot{margin-top:auto;padding:0 8px;color:var(--muted);font-size:13px;line-height:18px}
+
+/* canvas */
+main{padding:32px 32px 64px 8px;display:grid;gap:24px;align-content:start;min-width:0}
+header h1{margin:0;font:500 24px/32px var(--font)}
+header p{margin:4px 0 0;color:var(--muted);max-width:60ch}
+.work{display:grid;grid-template-columns:minmax(0,5fr) minmax(0,7fr);gap:var(--gap);align-items:stretch}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--r-card);padding:var(--pad);display:grid;gap:16px}
+.card h2{margin:0;font:500 16px/24px var(--font)}
+.head{display:flex;justify-content:space-between;align-items:center;gap:12px}
+textarea{width:100%;min-height:300px;resize:vertical;padding:12px;border:1px solid var(--control);border-radius:var(--r-ctl);background:var(--surface);line-height:22px}
+textarea::placeholder{color:#6b6b6b}
+.row{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap}
+.seg{display:flex;border:1px solid var(--control);border-radius:var(--r-ctl);overflow:hidden;margin:0;padding:0}
+.seg label{position:relative}
+.seg input{position:absolute;opacity:0;inset:0;cursor:pointer}
+.seg span{display:grid;place-items:center;min-width:44px;height:calc(var(--ctl) - 2px);padding:0 12px}
+.seg input:checked+span{background:var(--active);font-weight:500}
+.seg input:focus-visible+span{outline:2px solid var(--hue);outline-offset:-2px}
+.seg legend{position:absolute;opacity:0}
+.btn{height:var(--ctl);padding:0 16px;border-radius:var(--r-ctl);border:1px solid var(--primary);background:var(--primary);color:#fff;font-weight:500;cursor:pointer}
+.btn:hover:not(:disabled){background:#2c2c2c}
+.btn:active:not(:disabled){transform:translateY(1px)}
+.btn:disabled{background:var(--active);border-color:var(--active);color:var(--muted);cursor:not-allowed}
+.link{background:none;border:0;padding:0;color:var(--text);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.link:hover{color:var(--hue)}
+.note{color:var(--muted);font-size:13px;line-height:18px}
+.err{color:var(--bad-ink)}
+
+/* progress marks: this product's one element */
+.marks{display:flex;gap:6px}
+.marks i{flex:1;height:8px;border-radius:2px;background:var(--active)}
+.marks i.ok{background:var(--text)}
+.marks i.bad{background:var(--negative)}
+.marks i.cur{background:var(--hue)}
+.meta{display:flex;justify-content:space-between;color:var(--muted)}
+.meta b{color:var(--text);font-weight:500}
+.q{margin:0;font:500 20px/28px var(--font);text-wrap:balance}
+.opts{display:grid;gap:8px;margin:0;padding:0;list-style:none}
+.opt{display:flex;gap:12px;align-items:flex-start;width:100%;text-align:left;padding:12px 14px;min-height:48px;border:1px solid var(--control);border-radius:var(--r-ctl);background:var(--surface);cursor:pointer}
+.opt:hover:not(:disabled){border-color:var(--text)}
+.opt:disabled{cursor:default}
+.opt kbd{font:500 12px/20px var(--font);color:var(--muted);width:20px;flex:none}
+.opt.ok{background:var(--ok-bg);border-color:#9bd5af;color:var(--ok-ink)}
+.opt.bad{background:var(--bad-bg);border-color:#efb3ad;color:var(--bad-ink)}
+.opt .tag{margin-left:auto;font-size:12px;line-height:20px;font-weight:500;white-space:nowrap}
+.fb{border-radius:var(--r-ctl);padding:12px 14px;white-space:pre-wrap}
+.fb.ok{background:var(--ok-bg);color:var(--ok-ink)}
+.fb.bad{background:var(--bad-bg);color:var(--bad-ink)}
+.fb b{display:block;font-weight:500}
+.skel{display:grid;gap:12px}.skel i{display:block;height:20px;border-radius:4px;background:var(--active)}
+.skel i:first-child{height:28px;width:80%}
+.kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);border-radius:var(--r-card)}
+.kpis div{padding:16px 20px;display:grid;gap:4px}
+.kpis div+div{border-left:1px solid var(--border)}
+.kpis span{color:var(--muted)}
+.kpis b{font:400 30px/36px var(--font)}
+table{width:100%;border-collapse:collapse}
+th{font-weight:400;color:var(--muted);text-align:left;font-size:12px;height:32px;border-bottom:1px solid var(--border)}
+td{height:48px;border-bottom:1px solid var(--rule);padding-right:12px;vertical-align:middle}
+tr:last-child td{border-bottom:0}
+td:first-child{max-width:0;width:48%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+th.r,td.r{text-align:right;padding-right:0}
+.pill{display:inline-block;height:20px;line-height:20px;padding:0 8px;border-radius:4px;font-size:12px;font-weight:500;white-space:nowrap}
+.pill.ok{background:var(--ok-bg);color:var(--ok-ink)}.pill.bad{background:var(--bad-bg);color:var(--bad-ink)}
+.dash{color:var(--muted)}
+
+@media(max-width:900px){
+  .shell{grid-template-columns:1fr}
+  aside{position:static;height:auto;padding:8px 16px;flex-direction:row;align-items:center;gap:12px;min-height:48px;background:var(--surface);border-bottom:1px solid var(--border)}
+  aside .group{display:none}.foot{display:none}
+  main{padding:20px 16px 48px}
+  .work{grid-template-columns:1fr}
+  textarea{min-height:200px}
+  .kpis b{font-size:24px;line-height:32px}
+  .kpis div{padding:12px 14px}
+  .opt{min-height:44px}
+}
+@media(prefers-reduced-motion:no-preference){.marks i{transition:background .25s}.opt{transition:border-color .15s,background .15s}}
+</style>
+</head>
+<body>
+<div class="shell">
+  <aside>
+    <div class="brand">
+      <svg viewBox="0 0 28 28" aria-hidden="true"><rect width="28" height="28" rx="7" fill="#1d5fbf"/><path d="M8 14.5l4 4 8-9" fill="none" stroke="#fff" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      Pop Quiz
+    </div>
+    <div class="group">
+      <h2>Model</h2>
+      <div class="kv">
+        <div><span>Engine</span>WebLLM</div>
+        <div><span>Weights</span>Gemma 2 · 2B</div>
+        <div><span>Runs on</span>This device</div>
+      </div>
+      <div class="load" id="loadbox">
+        <progress id="prog" value="0" max="1" aria-label="Model download"></progress>
+        <div class="ends"><span id="status">Checking WebGPU…</span><span id="pct">0%</span></div>
+      </div>
+    </div>
+    <div class="group">
+      <h2>This session</h2>
+      <ul class="hist" id="hist"><li class="none">No quizzes yet.</li></ul>
+    </div>
+    <div class="foot">Notes never leave this tab. After the first download the app works offline.</div>
+  </aside>
+
+  <main>
+    <header>
+      <h1>Quiz from your notes</h1>
+      <p>Paste what you are revising. You get multiple-choice questions, each graded as you answer, with the reason when you miss.</p>
+    </header>
+
+    <div class="work">
+      <section class="card" aria-labelledby="nh">
+        <div class="head"><h2 id="nh">Lecture notes</h2><button class="link" id="sample" type="button">Use sample notes</button></div>
+        <textarea id="notes" placeholder="Paste at least a few paragraphs of notes here."></textarea>
+        <div class="row">
+          <fieldset class="seg"><legend>Number of questions</legend>
+            <label><input type="radio" name="n" value="3"><span>3</span></label>
+            <label><input type="radio" name="n" value="5" checked><span>5</span></label>
+            <label><input type="radio" name="n" value="8"><span>8</span></label>
+          </fieldset>
+          <button class="btn" id="go" disabled>Make quiz</button>
+        </div>
+        <div class="note" id="hint">Loading the model first. Notes are trimmed to about 6,000 characters.</div>
+      </section>
+
+      <section class="card" id="stage" aria-live="polite">
+        <div class="head"><h2>Quiz</h2><span class="note">Example from the sample notes</span></div>
+        <div class="marks" aria-hidden="true"><i class="ok"></i><i class="bad"></i><i class="cur"></i><i></i><i></i></div>
+        <p class="q">Where in the chloroplast do the light-dependent reactions happen?</p>
+        <ul class="opts" aria-hidden="true">
+          <li><div class="opt bad"><kbd>A</kbd><span>The stroma</span><span class="tag">Your answer</span></div></li>
+          <li><div class="opt ok"><kbd>B</kbd><span>The thylakoid membranes</span><span class="tag">Correct answer</span></div></li>
+          <li><div class="opt"><kbd>C</kbd><span>The cell wall</span></div></li>
+        </ul>
+        <div class="fb bad"><b>Not quite</b>The stroma is where the Calvin cycle fixes carbon dioxide. Light is captured earlier, in the thylakoid membranes, which is where water is split and ATP is made.</div>
+        <div class="note">Press Make quiz to get questions from your own notes.</div>
+      </section>
+    </div>
+  </main>
+</div>
+
+<script type="module">
+import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm@0.2.88";
+
+const MODEL = "gemma-2-2b-it-q4f16_1-MLC"; // same model as the workshop, already cached if you did the prework
+const $ = id => document.getElementById(id);
+const stage = $("stage"), go = $("go"), hint = $("hint");
+const L = "ABCD";
+let engine, quiz = [], res = [], i = 0, title = "", sessions = [];
+
+const SAMPLE = `Photosynthesis is the process by which plants, algae and some bacteria turn light energy into chemical energy stored in glucose. In plants it takes place in the chloroplasts, which contain the green pigment chlorophyll. Chlorophyll absorbs mostly red and blue light and reflects green, which is why leaves look green.
+
+The process has two stages. In the light-dependent reactions, which happen in the thylakoid membranes, light energy splits water molecules, releasing oxygen as a by-product and producing the energy carriers ATP and NADPH. In the Calvin cycle, which happens in the stroma, the plant uses ATP and NADPH to fix carbon dioxide from the air into glucose.
+
+The overall equation is 6CO2 + 6H2O + light energy -> C6H12O6 + 6O2. Factors that limit the rate of photosynthesis include light intensity, carbon dioxide concentration and temperature. Above roughly 40 degrees Celsius the enzymes involved begin to denature and the rate falls sharply.`;
+
+const SCHEMA = JSON.stringify({
+  type: "object",
+  properties: { questions: { type: "array", items: { type: "object", properties: {
+    question: { type: "string" },
+    options: { type: "array", items: { type: "string" }, minItems: 4, maxItems: 4 },
+    answer: { type: "integer", minimum: 0, maximum: 3 },
+    why: { type: "string" } },
+    required: ["question", "options", "answer", "why"] } } },
+  required: ["questions"] });
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const marks = () => `<div class="marks" role="img" aria-label="${res.filter(r => r.ok).length} of ${quiz.length} correct so far">${quiz.map((_, k) =>
+  `<i class="${k < res.length ? (res[k].ok ? "ok" : "bad") : k === i ? "cur" : ""}"></i>`).join("")}</div>`;
+
+async function init() {
+  if (!navigator.gpu) { $("status").textContent = "WebGPU unavailable"; hint.innerHTML = '<span class="err">This browser has no WebGPU. Use a recent Chrome or Edge.</span>'; return; }
+  $("status").textContent = "Downloading model";
+  engine = await CreateMLCEngine(MODEL, { initProgressCallback: p => {
+    $("prog").value = p.progress; $("pct").textContent = Math.round(p.progress * 100) + "%";
+    if (p.progress < 1) $("status").textContent = p.text.length > 28 ? "Loading model" : p.text; } });
+  $("status").textContent = "Ready"; $("pct").textContent = "100%";
+  hint.textContent = "Model ready. Notes are trimmed to about 6,000 characters.";
+  go.disabled = false;
+}
+
+$("sample").onclick = () => { $("notes").value = SAMPLE; $("notes").focus(); };
+
+go.onclick = async () => {
+  const notes = $("notes").value.trim(), n = +document.querySelector("[name=n]:checked").value;
+  if (notes.length < 80) { hint.innerHTML = '<span class="err">Paste a little more (80+ characters) so the questions have something to test.</span>'; return; }
+  hint.textContent = "Notes are trimmed to about 6,000 characters.";
+  go.disabled = true;
+  title = notes.split(/[.\n]/)[0].slice(0, 40);
+  stage.innerHTML = `<h2>Quiz</h2><div class="skel" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div><div class="note">Writing ${n} questions on this device. Usually 10 to 40 seconds.</div>`;
+  try {
+    const r = await engine.chat.completions.create({
+      temperature: 0.4,
+      response_format: { type: "json_object", schema: SCHEMA },
+      messages: [{ role: "user", content:
+        `Write ${n} multiple-choice questions testing the notes below. Each has 4 options, exactly one correct. "answer" is the 0-based index of the correct option. "why" is one sentence explaining the correct answer, using only the notes.\n\nNOTES:\n${notes.slice(0, 6000)}` }] });
+    quiz = JSON.parse(r.choices[0].message.content).questions.filter(q => q.options?.length === 4 && q.options[q.answer] !== undefined);
+    if (!quiz.length) throw 0;
+    i = 0; res = []; show();
+  } catch {
+    stage.innerHTML = `<h2>Quiz</h2><div class="note err">Couldn't write the quiz this time. The small model sometimes returns broken output. <button class="link" id="retry">Retry</button></div>`;
+    $("retry").onclick = () => go.click();
+  }
+  go.disabled = false;
+};
+
+function show() {
+  if (i >= quiz.length) return summary();
+  const q = quiz[i];
+  stage.innerHTML = `
+    <div class="head"><h2>Quiz</h2><span class="note">Question ${i + 1} of ${quiz.length}</span></div>
+    ${marks()}
+    <p class="q">${esc(q.question)}</p>
+    <ul class="opts">${q.options.map((o, k) => `<li><button class="opt" data-k="${k}"><kbd>${L[k]}</kbd><span>${esc(o)}</span></button></li>`).join("")}</ul>
+    <div id="fb"></div>`;
+  stage.querySelectorAll(".opt").forEach(b => b.onclick = () => grade(+b.dataset.k));
+}
+
+async function grade(k) {
+  const q = quiz[i], ok = k === q.answer;
+  res.push({ q, k, ok });
+  const btns = [...stage.querySelectorAll(".opt")];
+  btns.forEach(b => b.disabled = true);
+  btns[q.answer].classList.add("ok"); btns[q.answer].insertAdjacentHTML("beforeend", '<span class="tag">Correct answer</span>');
+  if (!ok) { btns[k].classList.add("bad"); btns[k].insertAdjacentHTML("beforeend", '<span class="tag">Your answer</span>'); }
+  stage.querySelector(".marks").outerHTML = marks();
+  const fb = $("fb");
+  fb.innerHTML = `<div class="fb ${ok ? "ok" : "bad"}"><b>${ok ? "Correct" : "Not quite"}</b><span id="txt">${esc(q.why)}</span></div>`;
+  const next = `<div class="row" style="margin-top:12px"><span class="note">${res.filter(r => r.ok).length} of ${res.length} correct</span><button class="btn" id="next">${i + 1 < quiz.length ? "Next question" : "See results"}</button></div>`;
+  if (!ok) {
+    // stream a tailored explanation of this specific mistake
+    const txt = $("txt"); txt.textContent = "";
+    const s = await engine.chat.completions.create({ stream: true, temperature: 0.3, messages: [{ role: "user", content:
+      `Quiz question: ${q.question}\nStudent picked: ${q.options[k]}\nCorrect answer: ${q.options[q.answer]}\nIn 2 or 3 short sentences, explain why the student's pick is wrong and why the correct answer is right. Be kind.` }] });
+    for await (const c of s) txt.textContent += c.choices[0]?.delta?.content ?? "";
+  }
+  fb.insertAdjacentHTML("beforeend", next);
+  $("next").focus();
+  $("next").onclick = () => { i++; show(); };
+}
+
+function summary() {
+  const right = res.filter(r => r.ok).length, n = quiz.length, pct = Math.round(right / n * 100);
+  sessions.unshift({ title, right, n });
+  $("hist").innerHTML = sessions.map((s, k) => `<li class="${k ? "" : "on"}"><span class="t">${esc(s.title)}</span><b>${s.right}/${s.n}</b></li>`).join("");
+  stage.innerHTML = `
+    <div class="head"><h2>Results</h2><button class="btn" id="again">Retake quiz</button></div>
+    ${marks().replace(/ cur/, "")}
+    <div class="kpis"><div><span>Correct</span><b>${right}</b></div><div><span>Missed</span><b>${n - right}</b></div><div><span>Score</span><b>${pct}%</b></div></div>
+    <table><thead><tr><th>Question</th><th>Your answer</th><th class="r">Result</th></tr></thead><tbody>
+    ${res.map(r => `<tr><td title="${esc(r.q.question)}">${esc(r.q.question)}</td><td>${esc(L[r.k])}${r.ok ? "" : ` <span class="dash">· correct is ${L[r.q.answer]}</span>`}</td><td class="r"><span class="pill ${r.ok ? "ok" : "bad"}">${r.ok ? "Correct" : "Missed"}</span></td></tr>`).join("")}
+    </tbody></table>`;
+  $("again").onclick = () => { i = 0; res = []; show(); };
+}
+
+init().catch(e => { $("status").textContent = "Failed to load"; hint.innerHTML = `<span class="err">${esc(e.message)}</span>`; });
+</script>
+</body>
+</html>
