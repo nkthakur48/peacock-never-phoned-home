@@ -27,9 +27,10 @@ DRIVER='<script type="module">
   document.title = !filled ? "RESULT=PILL-DID-NOT-FILL=" : "RESULT=" + [...document.querySelectorAll("#nest-strip .on")].map(s => s.dataset.f).join(",") + "=";
 </script>'
 for f in "$T"/exercise/*.html; do
-  sed -i.bak 's#https://esm.run/@mlc-ai/web-llm#./fake.js#' "$f"; printf '%s\n' "$DRIVER" >> "$f"
+  sed -i.bak 's#https://esm.run/@mlc-ai/web-llm@[0-9.]*#./fake.js#' "$f"; printf '%s\n' "$DRIVER" >> "$f"
 done
-PORT=8765; python3 -m http.server $PORT --directory "$T" >/dev/null 2>&1 & SRV=$!; sleep 1
+PORT=$((20000 + $$ % 20000))  # varies per run: a fixed port silently fails when something else holds it
+python3 -m http.server $PORT --directory "$T" >/dev/null 2>&1 & SRV=$!; sleep 1
 fail=0
 check() {
   got=$("$CHROME" --headless --disable-gpu --virtual-time-budget=8000 --dump-dom "http://localhost:$PORT/exercise/$1" 2>/dev/null | sed -n 's/.*RESULT=\([^=]*\)=.*/[\1]/p' | head -1)

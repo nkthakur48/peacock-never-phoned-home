@@ -38,9 +38,9 @@
 
   <script src="nest.js" data-page="7"></script>  <!-- your peacock, its feathers and your next quest -->
   <script type="module">
-    import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm";
-    import { marked } from "https://esm.run/marked";
-    import DOMPurify from "https://esm.run/dompurify";
+    import { CreateMLCEngine } from "https://esm.run/@mlc-ai/web-llm@0.2.88";
+    import { marked } from "https://esm.run/marked@15.0.12";
+    import DOMPurify from "https://esm.run/dompurify@3.4.17";
 
     marked.setOptions({ breaks: true, gfm: true });
 
@@ -73,7 +73,7 @@ You: [TOOL weather "Paris"]
 
 (After receiving results, you answer using the data.)`;
 
-    const WELCOME = "I'm a research agent with access to Wikipedia, a calculator, and date/time. Ask me anything factual and I'll look it up — no guessing!";
+    const WELCOME = "I'm a research agent with access to Wikipedia, weather, a calculator, and date/time. Ask me anything factual and I'll look it up — no guessing!";
 
     const loadingEl = document.getElementById("loading");
     const appEl = document.getElementById("app");
