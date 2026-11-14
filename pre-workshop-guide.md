@@ -7,6 +7,16 @@ Do this before UbuCon. It takes about 15 minutes, most of it a one-time 1.5 GB d
 1. A laptop with **Google Chrome** installed (latest version)
 2. A code editor. We recommend **VS Code** (https://code.visualstudio.com)
 3. The AI model pre-downloaded (Step 4)
+4. About **5 GB of free disk space** (the model is 1.5 GB, plus browser cache headroom)
+5. On the day: your **laptop charger**, and a **phone hotspot** as a wifi fallback
+
+## Checklist
+
+- ☐ VS Code installed
+- ☐ Live Server extension installed
+- ☐ Chrome shows **WebGPU: Hardware accelerated**
+- ☐ Workshop files downloaded and opened in VS Code
+- ☐ `precache.html` says **"Model cached!"**
 
 ---
 
@@ -28,6 +38,8 @@ We use this to run your code in the browser during the workshop.
 2. Type `chrome://gpu` in the address bar and press Enter.
 3. Look for the line **WebGPU: Hardware accelerated**.
 4. If you see it, you're good. If not, update Chrome to the latest version and try again.
+
+> **On Ubuntu/Linux?** Chrome often has WebGPU off by default. Open `chrome://flags`, enable **Unsafe WebGPU Support** and **Vulkan**, relaunch Chrome, then recheck `chrome://gpu`.
 
 > **No WebGPU?** Try Microsoft Edge. If neither works, don't worry: we'll help you at the workshop.
 
@@ -77,6 +89,7 @@ When it's finished, the page looks like this:
 |---------|-----|
 | Page shows "Download failed" | Use Chrome or Edge, and check that `chrome://gpu` shows WebGPU support. |
 | Download is stuck or very slow | Try a faster wifi network, or tether to your phone's data. |
+| `chrome://gpu` says WebGPU is disabled | Update Chrome (version 113 or newer is needed). On Linux, see the flags tip in Step 2. |
 | Tab crashes | Your laptop may not have enough GPU memory. Tell us at the workshop. |
 | "Open with Live Server" is missing | Check that the Live Server extension is installed (Step 1). Or open a terminal in the folder, run `npx serve`, and visit the address it prints. |
 
