@@ -93,6 +93,7 @@ textarea::placeholder{color:#6b6b6b}
 .fb.ok{background:var(--ok-bg);color:var(--ok-ink)}
 .fb.bad{background:var(--bad-bg);color:var(--bad-ink)}
 .fb b{display:block;font-weight:500}
+.fb .src{display:block;margin-top:8px;font-size:13px;line-height:18px;opacity:.85}
 .skel{display:grid;gap:12px}.skel i{display:block;height:20px;border-radius:4px;background:var(--active)}
 .skel i:first-child{height:28px;width:80%}
 .kpis{display:grid;grid-template-columns:repeat(3,1fr);border:1px solid var(--border);border-radius:var(--r-card)}
@@ -213,6 +214,19 @@ const SCHEMA = JSON.stringify({
   required: ["questions"] });
 
 const esc = s => String(s).replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+// Grounding without extra model calls: find the sentence in the notes that best matches the question
+// and the marked answer. A question is kept only if that sentence really contains the answer's terms.
+const terms = t => new Set((t.match(/[\p{L}\p{N}]{4,}|\b[A-Z0-9]{2,}\b/gu) || []).map(w => w.toLowerCase().slice(0, 5)));
+const hits = (a, b) => [...a].filter(x => b.has(x)).length;
+function source(q, sents) {
+  const qa = terms(q.question), aw = terms(q.options[q.answer]);
+  let best = null, top = 0;
+  for (const s of sents) {
+    const sw = terms(s), qh = hits(qa, sw), ah = aw.size ? hits(aw, sw) / aw.size : 1, score = qh + 2 * ah;
+    if (qh >= 2 && ah >= 0.5 && score > top) { top = score; best = s; }
+  }
+  return best;
+}
 const marks = () => `<div class="marks" role="img" aria-label="${res.filter(r => r.ok).length} of ${quiz.length} correct so far">${quiz.map((_, k) =>
   `<i class="${k < res.length ? (res[k].ok ? "ok" : "bad") : k === i ? "cur" : ""}"></i>`).join("")}</div>`;
 
@@ -241,12 +255,16 @@ go.onclick = async () => {
       temperature: 0.4,
       response_format: { type: "json_object", schema: SCHEMA },
       messages: [{ role: "user", content:
-        `Write ${n} multiple-choice questions testing the notes below. Each has 4 options, exactly one correct. "answer" is the 0-based index of the correct option. "why" is one sentence explaining the correct answer, using only the notes.\n\nNOTES:\n${notes.slice(0, 6000)}` }] });
-    quiz = JSON.parse(r.choices[0].message.content).questions.filter(q => q.options?.length === 4 && q.options[q.answer] !== undefined);
+        `Write ${n + 2} multiple-choice questions testing the notes below. Use only facts stated in the notes, never outside knowledge. Each has 4 options, exactly one correct. "answer" is the 0-based index of the correct option. "why" is one sentence explaining the correct answer, using only the notes.\n\nNOTES:\n${notes.slice(0, 6000)}` }] });
+    const sents = notes.slice(0, 6000).split(/(?<=[.!?])\s+|\n+/).filter(x => x.length > 20);
+    quiz = JSON.parse(r.choices[0].message.content).questions
+      .filter(q => q.options?.length === 4 && q.options[q.answer] !== undefined)
+      .map(q => ({ ...q, src: source(q, sents) })).filter(q => q.src).slice(0, n);
     if (!quiz.length) throw 0;
+    if (quiz.length < n) hint.textContent = `Kept ${quiz.length} of ${n} questions: the rest weren't backed by a line in your notes.`;
     i = 0; res = []; show();
   } catch {
-    stage.innerHTML = `<h2>Quiz</h2><div class="note err">Couldn't write the quiz this time. The small model sometimes returns broken output. <button class="link" id="retry">Retry</button></div>`;
+    stage.innerHTML = `<h2>Quiz</h2><div class="note err">Couldn't make questions your notes clearly support. Try longer, more detailed notes. <button class="link" id="retry">Retry</button></div>`;
     $("retry").onclick = () => go.click();
   }
   go.disabled = false;
@@ -273,13 +291,13 @@ async function grade(k) {
   if (!ok) { btns[k].classList.add("bad"); btns[k].insertAdjacentHTML("beforeend", '<span class="tag">Your answer</span>'); }
   stage.querySelector(".marks").outerHTML = marks();
   const fb = $("fb");
-  fb.innerHTML = `<div class="fb ${ok ? "ok" : "bad"}"><b>${ok ? "Correct" : "Not quite"}</b><span id="txt">${esc(q.why)}</span></div>`;
+  fb.innerHTML = `<div class="fb ${ok ? "ok" : "bad"}"><b>${ok ? "Correct" : "Not quite"}</b><span id="txt">${esc(q.why)}</span><span class="src">From your notes: “${esc(q.src)}”</span></div>`;
   const next = `<div class="row" style="margin-top:12px"><span class="note">${res.filter(r => r.ok).length} of ${res.length} correct</span><button class="btn" id="next">${i + 1 < quiz.length ? "Next question" : "See results"}</button></div>`;
   if (!ok) {
     // stream a tailored explanation of this specific mistake
     const txt = $("txt"); txt.textContent = "";
     const s = await engine.chat.completions.create({ stream: true, temperature: 0.3, messages: [{ role: "user", content:
-      `Quiz question: ${q.question}\nStudent picked: ${q.options[k]}\nCorrect answer: ${q.options[q.answer]}\nIn 2 or 3 short sentences, explain why the student's pick is wrong and why the correct answer is right. Be kind.` }] });
+      `Quiz question: ${q.question}\nStudent picked: ${q.options[k]}\nCorrect answer: ${q.options[q.answer]}\nThe correct answer is final. Source from the notes: "${q.src}"\nIn 2 or 3 short sentences, using only that source, explain why the student's pick is wrong and why the correct answer is right. Be kind.` }] });
     for await (const c of s) txt.textContent += c.choices[0]?.delta?.content ?? "";
   }
   fb.insertAdjacentHTML("beforeend", next);
