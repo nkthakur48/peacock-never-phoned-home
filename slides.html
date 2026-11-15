@@ -48,6 +48,7 @@
 
   .face { width: 140px; height: 140px; border-radius: 50%; object-fit: cover; border: 3px solid var(--line); }
   .reveal img.qr { width: 190px; height: 190px; margin: 0; border: 0; box-shadow: none; }
+  .reveal p.url { font: 600 1.4em/1.25 'JetBrains Mono', monospace; font-variant-ligatures: none; letter-spacing: -0.03em; margin: 0.1em 0 0.5em; }  /* big: it has to be readable from the back row */
   .li { display: grid; grid-template-columns: 1fr 1fr; row-gap: 0.5em; } .li > div { padding: 0 0.5em; } .li > div + div { border-left: 1px solid var(--line); } .reveal .li img.qr { width: 165px; height: 165px; }
   .li .who { display: flex; align-items: center; justify-content: center; gap: 0.5em; margin: 0.3em 0 0; } .reveal .li .face { width: 64px; height: 64px; border-width: 2px; margin: 0; }
   .reveal img.shot { max-height: 350px; margin: 0; border: 1px solid var(--line); border-radius: 10px; box-shadow: none; }
@@ -76,8 +77,11 @@
   .seven .n { font-size: 0.9em; margin: 0.8em 0; background: var(--real); } .seven img.art + .n { display: none; }
   .seven b { display: block; font-size: 0.62em; } .seven span.s { display: block; font-size: 0.45em; color: var(--muted); }
 
+  /* small repo address in the footer of every slide, bottom left, for anyone who arrives late */
+  #repo { position: fixed; left: 20px; bottom: 12px; z-index: 30; font: 600 13px 'JetBrains Mono', monospace; color: var(--muted); }
+  #repo.dark { color: #b9e4de; }  /* on the teal chapter cards */
   /* progress strip: one feather per thing learned */
-  #grow { position: fixed; left: 50%; transform: translateX(-50%); bottom: 12px; z-index: 30; white-space: nowrap; font: 600 12px 'JetBrains Mono', monospace; display: none; }
+  #grow { position: fixed; left: 55%; transform: translateX(-50%);  /* right of centre: leaves room for the repo address on the left */  bottom: 12px; z-index: 30; white-space: nowrap; font: 600 12px 'JetBrains Mono', monospace; display: none; }
   #grow span { display: inline-block; padding: 2px 12px; margin: 0 2px; border-radius: 999px 999px 999px 0; border: 1px solid var(--line); color: #b8b4a6; background: var(--bg); }
   #grow span.on { color: #fff; background: var(--real); border-color: var(--real); }
   #grow span.new { animation: pill .8s; }
@@ -100,6 +104,7 @@
 <body>
 <svg width="0" height="0" style="position:absolute" aria-hidden="true"><symbol id="i-laptop" viewBox="0 0 24 24"><rect x="4" y="5" width="16" height="11" rx="1.5"/><path d="M2 19h20"/></symbol><symbol id="i-chip" viewBox="0 0 24 24"><rect x="6" y="6" width="12" height="12" rx="1.5"/><rect x="9.5" y="9.5" width="5" height="5"/><path d="M9 2v4M15 2v4M9 18v4M15 18v4M2 9h4M2 15h4M18 9h4M18 15h4"/></symbol><symbol id="i-receipt" viewBox="0 0 24 24"><path d="M6 2.5h12v19l-2-1.5-2 1.5-2-1.5-2 1.5-2-1.5-2 1.5z"/><path d="M9 7h6M9 10.5h6M9 14h3.5"/></symbol><symbol id="i-hand" viewBox="0 0 24 24"><path d="M8 11V6a1.5 1.5 0 0 1 3 0v4M11 10V4.5a1.5 1.5 0 0 1 3 0V10M14 10V6a1.5 1.5 0 0 1 3 0v7c0 4-2.5 7-6 7-2.5 0-4-1-5-3l-2-4a1.5 1.5 0 0 1 2.500-1.5L8 14"/></symbol><symbol id="i-bot" viewBox="0 0 24 24"><rect x="4" y="8" width="16" height="11" rx="2"/><path d="M12 8V4M9 13h.01M15 13h.01M9.5 16h5"/></symbol><symbol id="i-file" viewBox="0 0 24 24"><path d="M6 3h8l4 4v14H6z"/><path d="M14 3v4h4M9 13h6M9 17h6"/></symbol><symbol id="i-bolt" viewBox="0 0 24 24"><path d="M13 2L5 14h6l-1 8 8-12h-6z"/></symbol><symbol id="i-key" viewBox="0 0 24 24"><circle cx="8" cy="15" r="4"/><path d="M11 12l9-9M16 7l3 3"/></symbol><symbol id="i-cloud" viewBox="0 0 24 24"><path d="M7 18a4 4 0 0 1-.5-8A5.5 5.5 0 0 1 17 8.500 4.500 4.500 0 0 1 17.500 18z"/></symbol></svg>
 
+<div id="repo">github.com/nkthakur48/peacock-never-phoned-home</div>
 <div id="grow"><span>brain</span><span>voice</span><span>character</span><span>memory</span><span>face</span><span>hands</span><span>home</span></div>
 <div class="reveal">
 <div class="slides">
@@ -169,6 +174,19 @@
   <p class="fragment" style="margin-top:1.6em">That's all the theory. <b class="real">Let's hatch it.</b></p>
 </section>
 
+<!-- THE REPO -->
+<section>
+  <span class="ask"><svg class="i"><use href="#i-hand"/></svg> scan it or type it, then open the page</span>
+  <h2>Everything is in one repo</h2>
+  <div class="split" style="align-items:center">
+    <div style="flex:1;min-width:0">
+      <p class="url">github.com/nkthakur48/<br><span class="real">peacock-never-phoned-home</span></p>
+      <p>Click <b>Code → Download ZIP</b>, unzip it, open the folder in VS Code.</p>
+      <p class="small">Already have it from the prework? Download it again: we added a few things since.</p>
+    </div>
+    <img class="qr" style="width:280px;height:280px" src="assets/qr-repo.png" alt="QR code for github.com/nkthakur48/peacock-never-phoned-home">
+  </div>
+</section>
 <!-- QUICK CHECK -->
 <section>
   <span class="ask"><svg class="i"><use href="#i-hand"/></svg> thumbs up when all four are green</span>
@@ -571,6 +589,7 @@ for (let round = 0; round &lt; MAX_TOOL_ROUNDS; round++) {
   const mark = e => {
     const n = e.currentSlide.dataset.lvl, dark = e.currentSlide.classList.contains('chapter');
     grow.style.display = n && !dark ? 'block' : 'none';
+    document.getElementById('repo').classList.toggle('dark', dark);
     [...grow.children].forEach((c, i) => { c.classList.remove('new'); c.classList.toggle('on', i < n); });
     if (n > lit) { const c = grow.children[n - 1]; void c.offsetWidth; c.classList.add('new'); }  // a feather was just earned: pop it
     lit = +n || 0;
